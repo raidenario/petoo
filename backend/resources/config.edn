@@ -1,0 +1,58 @@
+{;; ===================================================
+ ;; Configuração do Petoo Backend
+ ;; ===================================================
+ ;; Use #profile para valores específicos por ambiente
+
+ :http-server
+ {:port #long #or [#env PORT 3000]
+  :host "0.0.0.0"}
+
+ :database
+ {:jdbcUrl #join ["jdbc:postgresql://"
+                  #or [#env DB_HOST "localhost"]
+                  ":"
+                  #or [#env DB_PORT "5432"]
+                  "/"
+                  #or [#env DB_NAME "petoo_db"]]
+  :user "petoo"
+  :password "petoo_secret"
+  :maximumPoolSize 10
+  :minimumIdle 2
+  :connectionTimeout 30000}
+
+ :kafka
+ {:bootstrap-servers #or [#env KAFKA_BOOTSTRAP_SERVERS "localhost:9092"]
+  :client-id "petoo-backend"
+  :producer
+  {:acks "all"
+   :retries 3
+   :key-serializer "org.apache.kafka.common.serialization.StringSerializer"
+   :value-serializer "org.apache.kafka.common.serialization.StringSerializer"}
+  :consumer
+  {:group-id "petoo-consumers"
+   :auto-offset-reset "earliest"
+   :enable-auto-commit false
+   :key-deserializer "org.apache.kafka.common.serialization.StringDeserializer"
+   :value-deserializer "org.apache.kafka.common.serialization.StringDeserializer"}}
+
+ :topics
+ {:appointment-created "appointment.created"
+  :slot-reserved "slot.reserved"
+  :slot-conflict "slot.conflict"
+  :payment-requested "payment.requested"
+  :payment-success "payment.success"
+  :payment-failed "payment.failed"}
+
+ :migratus
+ {:store :database
+  :migration-dir "migrations"
+  :init-in-transaction? false
+  :migration-table-name "schema_migrations"
+  :db {:jdbcUrl #join ["jdbc:postgresql://"
+                       #or [#env DB_HOST "localhost"]
+                       ":"
+                       #or [#env DB_PORT "5432"]
+                       "/"
+                       #or [#env DB_NAME "petoo_db"]]
+       :user #or [#env DB_USER "petoo"]
+       :password #or [#env DB_PASSWORD "petoo_secret"]}}}

@@ -1,0 +1,19 @@
+meta {
+  name: Ping
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{base_url}}/ping
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+}
+
+docs {
+  Endpoint simples de ping/pong
+}

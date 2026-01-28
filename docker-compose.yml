@@ -1,0 +1,145 @@
+version: '3.8'
+
+services:
+  # ===========================================
+  # PostgreSQL - Banco de Dados Principal
+  # ===========================================
+  postgres:
+    image: postgres:15-alpine
+    container_name: petoo-postgres
+    environment:
+      POSTGRES_USER: petoo
+      POSTGRES_PASSWORD: petoo_secret
+      POSTGRES_DB: petoo_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/resources/db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U petoo -d petoo_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - petoo-network
+
+  # ===========================================
+  # Zookeeper - Coordenador do Kafka
+  # ===========================================
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.4.0
+    container_name: petoo-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    volumes:
+      - zookeeper_data:/var/lib/zookeeper/data
+      - zookeeper_log:/var/lib/zookeeper/log
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "2181"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - petoo-network
+
+  # ===========================================
+  # Apache Kafka - Message Broker
+  # ===========================================
+  kafka:
+    image: confluentinc/cp-kafka:7.4.0
+    container_name: petoo-kafka
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    ports:
+      - "9092:9092"
+      - "29092:29092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      # Listeners internos (Docker) e externos (Host)
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+    networks:
+      - petoo-network
+
+  # ===========================================
+  # Kafka UI - Interface para visualizar tópicos (opcional)
+  # ===========================================
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: petoo-kafka-ui
+    depends_on:
+      kafka:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: petoo-cluster
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+      KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
+    networks:
+      - petoo-network
+
+  # ===========================================
+  # Petoo API - Backend Clojure
+  # ===========================================
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: petoo-api
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+    environment:
+      PORT: 3000
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: petoo_db
+      DB_USER: petoo
+      DB_PASSWORD: petoo_secret
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+    volumes:
+      - api_uploads:/app/uploads
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 3
+    networks:
+      - petoo-network
+    restart: unless-stopped
+
+networks:
+  petoo-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  zookeeper_data:
+  zookeeper_log:
+  kafka_data:
+  api_uploads:
+

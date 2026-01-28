@@ -1,0 +1,41 @@
+meta {
+  name: Create Pet
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{base_url}}/api/v1/pets
+  body: json
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+}
+
+auth:bearer {
+  token: {{auth_token}}
+}
+
+body:json {
+  {
+    "tenant-id": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+    "user-id": "{{user_id}}",
+    "name": "Rex",
+    "species": "DOG",
+    "breed": "Golden Retriever",
+    "size": "LARGE",
+    "birth-date": "2020-05-15",
+    "weight-kg": 25.5,
+    "notes": "Muito brincalhão e amigável"
+  }
+}
+
+settings {
+  encodeUrl: true
+}
+
+docs {
+  Cria um novo pet associado a um usuário. Use {{user_id}} da variável de ambiente.
+}

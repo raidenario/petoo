@@ -1,0 +1,285 @@
+(ns pet-app.workers.financial
+  "Financial Worker - Processa pagamentos e ledger.
+   
+   Consome: slot.reserved
+   Produz: payment.success | payment.failed
+   
+   Lógica:
+   1. Recebe evento de slot reservado
+   2. Cria transação no financial.transactions
+   3. Cria entries no ledger (imutável)
+   4. Simula chamada ao gateway de pagamento
+   5. Emite payment.success ou payment.failed"
+  (:require [pet-app.workers.base :as base]
+            [pet-app.infra.db :as db]
+            [pet-app.infra.kafka :as kafka]
+            [clojure.tools.logging :as log])
+  (:import [java.util UUID]))
+
+;; ============================================
+;; Wallet Operations
+;; ============================================
+
+(defn get-tenant-wallet
+  "Get or create wallet for tenant."
+  [ds tenant-id]
+  (let [existing (db/execute-one! ds
+                                  {:select [:*]
+                                   :from [:financial.wallets]
+                                   :where [:and
+                                           [:= :owner-id [:cast tenant-id :uuid]]
+                                           [:= :owner-type "TENANT"]]})]
+    (or existing
+        ;; Create wallet if not exists
+        (db/execute-one! ds
+                         {:insert-into :financial.wallets
+                          :values [{:owner-id [:cast tenant-id :uuid]
+                                    :owner-type "TENANT"
+                                    :balance-cents 0
+                                    :pending-cents 0}]
+                          :returning [:*]}))))
+
+(defn get-platform-wallet
+  "Get the platform wallet."
+  [ds]
+  (db/execute-one! ds
+                   {:select [:*]
+                    :from [:financial.wallets]
+                    :where [:= :owner-type "PLATFORM"]}))
+
+;; ============================================
+;; Transaction & Ledger Operations
+;; ============================================
+
+(defn create-transaction!
+  "Create a new transaction record."
+  [ds {:keys [wallet-id appointment-id amount-cents payment-method]}]
+  (let [tx-id (str (UUID/randomUUID))]
+    (db/execute-one! ds
+                     {:insert-into :financial.transactions
+                      :values [{:id [:cast tx-id :uuid]
+                                :wallet-id [:cast wallet-id :uuid]
+                                :appointment-id [:cast appointment-id :uuid]
+                                :amount-cents amount-cents
+                                :fee-cents 0
+                                :payment-method (or payment-method "PIX")
+                                :status "PROCESSING"
+                                :metadata [:cast (str "{\"source\": \"slot.reserved\"}") :jsonb]}]
+                      :returning [:*]})))
+
+(defn update-transaction-status!
+  "Update transaction status."
+  [ds tx-id status & {:keys [external-id]}]
+  (db/execute-one! ds
+                   {:update :financial.transactions
+                    :set (cond-> {:status status
+                                  :updated-at [:now]}
+                           external-id (assoc :external-id external-id)
+                           (= status "PAID") (assoc :paid-at [:now]))
+                    :where [:= :id [:cast tx-id :uuid]]
+                    :returning [:*]}))
+
+(defn create-ledger-entry!
+  "Create an immutable ledger entry."
+  [ds {:keys [transaction-id wallet-id entry-type amount-cents balance-after description]}]
+  (db/execute-one! ds
+                   {:insert-into :financial.ledger-entries
+                    :values [{:transaction-id [:cast transaction-id :uuid]
+                              :wallet-id [:cast wallet-id :uuid]
+                              :entry-type entry-type
+                              :amount-cents amount-cents
+                              :balance-after-cents balance-after
+                              :description description}]
+                    :returning [:*]}))
+
+(defn update-wallet-balance!
+  "Update wallet balance."
+  [ds wallet-id amount-cents]
+  (db/execute-one! ds
+                   {:update :financial.wallets
+                    :set {:balance-cents [:+ :balance-cents amount-cents]
+                          :updated-at [:now]}
+                    :where [:= :id [:cast wallet-id :uuid]]
+                    :returning [:*]}))
+
+;; ============================================
+;; Payment Gateway Simulation
+;; ============================================
+
+(defn simulate-payment-gateway
+  "Simulate a payment gateway call.
+   In production, this would call Stripe/Pagarme/etc.
+   
+   Returns:
+     {:success true :external-id \"...\"} or
+     {:success false :error \"...\"}"
+  [_amount-cents _payment-method]
+  ;; Simulate 95% success rate
+  (Thread/sleep 100) ;; Simulate network latency
+  (if (< (rand) 0.95)
+    {:success true
+     :external-id (str "sim_" (UUID/randomUUID))}
+    {:success false
+     :error "Payment declined by issuer"}))
+
+;; ============================================
+;; Commission Calculation
+;; ============================================
+
+(def PLATFORM_COMMISSION_RATE 0.10) ;; 10%
+
+(defn calculate-split
+  "Calculate payment split between tenant and platform."
+  [amount-cents commission-rate]
+  (let [platform-fee (Math/round (* amount-cents (double commission-rate)))
+        tenant-amount (- amount-cents platform-fee)]
+    {:total amount-cents
+     :platform-fee platform-fee
+     :tenant-amount tenant-amount}))
+
+;; ============================================
+;; Event Handler
+;; ============================================
+
+(defn handle-slot-reserved
+  "Handle slot.reserved event.
+   
+   Process payment and update ledger."
+  [{:keys [deps value] :as event}]
+  (let [{:keys [ds kafka-producer topics]} deps
+        payload (:payload value)
+        {:keys [appointment-id tenant-id price-cents]} payload]
+
+    (log/info "Processing slot.reserved for appointment:" appointment-id
+              "amount:" price-cents "cents")
+
+    (try
+      ;; Get wallets
+      (let [tenant-wallet (get-tenant-wallet ds tenant-id)
+            platform-wallet (get-platform-wallet ds)
+
+            ;; Create transaction
+            transaction (create-transaction! ds
+                                             {:wallet-id (:id tenant-wallet)
+                                              :appointment-id appointment-id
+                                              :amount-cents price-cents
+                                              :payment-method "PIX"})
+            tx-id (str (:id transaction))
+
+            ;; Simulate payment
+            payment-result (simulate-payment-gateway price-cents "PIX")]
+
+        (if (:success payment-result)
+          ;; Payment successful
+          (do
+            (log/info "Payment successful for transaction:" tx-id)
+
+            ;; Update transaction
+            (update-transaction-status! ds tx-id "PAID"
+                                        :external-id (:external-id payment-result))
+
+            ;; Calculate split
+            (let [{:keys [platform-fee tenant-amount]}
+                  (calculate-split price-cents PLATFORM_COMMISSION_RATE)
+
+                  ;; Update tenant wallet and create ledger entry
+                  updated-tenant-wallet (update-wallet-balance! ds
+                                                                (:id tenant-wallet)
+                                                                tenant-amount)]
+
+              ;; Ledger entry for tenant (CREDIT)
+              (create-ledger-entry! ds
+                                    {:transaction-id tx-id
+                                     :wallet-id (:id tenant-wallet)
+                                     :entry-type "CREDIT"
+                                     :amount-cents tenant-amount
+                                     :balance-after (:balance-cents updated-tenant-wallet)
+                                     :description (str "Payment for appointment " appointment-id)})
+
+              ;; Ledger entry for platform fee (FEE)
+              (when (and platform-wallet (> platform-fee 0))
+                (let [updated-platform (update-wallet-balance! ds
+                                                               (:id platform-wallet)
+                                                               platform-fee)]
+                  (create-ledger-entry! ds
+                                        {:transaction-id tx-id
+                                         :wallet-id (:id platform-wallet)
+                                         :entry-type "FEE"
+                                         :amount-cents platform-fee
+                                         :balance-after (:balance-cents updated-platform)
+                                         :description (str "Platform fee for appointment " appointment-id)})))
+
+              ;; Link transaction to appointment
+              (db/execute! ds
+                           {:update :core.appointments
+                            :set {:transaction-id [:cast tx-id :uuid]
+                                  :updated-at [:now]}
+                            :where [:= :id [:cast appointment-id :uuid]]})
+
+              ;; Emit payment.success
+              (when kafka-producer
+                (kafka/send-event! kafka-producer
+                                   (:payment-success topics)
+                                   appointment-id
+                                   (kafka/make-event :payment.success
+                                                     {:appointment-id appointment-id
+                                                      :transaction-id tx-id
+                                                      :amount-cents price-cents
+                                                      :tenant-amount tenant-amount
+                                                      :platform-fee platform-fee})))
+
+              (log/info "Payment processed successfully:" tx-id)))
+
+          ;; Payment failed
+          (do
+            (log/warn "Payment failed for transaction:" tx-id
+                      "reason:" (:error payment-result))
+
+            (update-transaction-status! ds tx-id "FAILED")
+
+            ;; Emit payment.failed
+            (when kafka-producer
+              (kafka/send-event! kafka-producer
+                                 (:payment-failed topics)
+                                 appointment-id
+                                 (kafka/make-event :payment.failed
+                                                   {:appointment-id appointment-id
+                                                    :transaction-id tx-id
+                                                    :reason (:error payment-result)}))))))
+
+      (catch Exception e
+        (log/error e "Error processing payment for appointment:" appointment-id)))))
+
+;; ============================================
+;; Event Router
+;; ============================================
+
+(defn handle-event
+  "Route event to appropriate handler."
+  [{:keys [value] :as event}]
+  (let [event-type (:event-type value)]
+    (case event-type
+      "slot.reserved" (handle-slot-reserved event)
+      (log/warn "Unknown event type:" event-type))))
+
+;; ============================================
+;; Worker Startup
+;; ============================================
+
+(defn start
+  "Start the financial worker."
+  [kafka-config topics ds producer]
+  (let [deps {:ds ds
+              :kafka-producer producer
+              :topics topics}
+        subscribe-topics [(:slot-reserved topics)]]
+    (base/run-worker "financial"
+                     kafka-config
+                     subscribe-topics
+                     handle-event
+                     deps)))
+
+(defn stop
+  "Stop the financial worker."
+  [worker]
+  (base/stop-worker worker))

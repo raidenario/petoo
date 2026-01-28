@@ -1,0 +1,34 @@
+meta {
+  name: Create User
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{base_url}}/api/v1/users
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "tenant-id": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+    "email": "joao@email.com",
+    "password": "senha123456",
+    "name": "João Silva",
+    "phone": "+5511999999999",
+    "role": "CUSTOMER"
+  }
+}
+
+settings {
+  encodeUrl: true
+}
+
+docs {
+  Cria um novo usuário. Retorna 202 Accepted com o ID gerado.
+}

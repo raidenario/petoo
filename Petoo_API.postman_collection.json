@@ -1,0 +1,501 @@
+{
+	"info": {
+		"_postman_id": "petoo-api-collection",
+		"name": "Petoo API",
+		"description": "Collection completa para testar a API do Petoo Backend",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.token) {",
+									"        pm.environment.set('auth_token', jsonData.token);",
+									"        pm.collectionVariables.set('auth_token', jsonData.token);",
+									"        console.log('Token salvo automaticamente:', jsonData.token.substring(0, 20) + '...');",
+									"    }",
+									"    if (jsonData.user && jsonData.user.id) {",
+									"        pm.environment.set('user_id', jsonData.user.id);",
+									"        pm.collectionVariables.set('user_id', jsonData.user.id);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"joao@email.com\",\n  \"password\": \"senha123456\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/auth/login",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "auth", "login"]
+						},
+						"description": "Autentica um usuário e retorna um token JWT. O token é salvo automaticamente na variável {{auth_token}} após o login bem-sucedido."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Current User",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/auth/me",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "auth", "me"]
+						},
+						"description": "Retorna informações do usuário autenticado. Requer token JWT válido."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Health & Utility",
+			"item": [
+				{
+					"name": "Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/health",
+							"host": ["{{base_url}}"],
+							"path": ["health"]
+						},
+						"description": "Verifica o status de saúde da API e componentes (database, kafka)"
+					},
+					"response": []
+				},
+				{
+					"name": "Ping",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/ping",
+							"host": ["{{base_url}}"],
+							"path": ["ping"]
+						},
+						"description": "Endpoint simples de ping/pong"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Users",
+			"item": [
+				{
+					"name": "Create User",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"tenant-id\": \"a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11\",\n  \"email\": \"joao@email.com\",\n  \"password\": \"senha123456\",\n  \"name\": \"João Silva\",\n  \"phone\": \"+5511999999999\",\n  \"role\": \"CUSTOMER\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/users",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "users"]
+						},
+						"description": "Cria um novo usuário. Retorna 202 Accepted com o ID gerado."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Pets",
+			"item": [
+				{
+					"name": "Create Pet",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"tenant-id\": \"a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11\",\n  \"user-id\": \"{{user_id}}\",\n  \"name\": \"Rex\",\n  \"species\": \"DOG\",\n  \"breed\": \"Golden Retriever\",\n  \"size\": \"LARGE\",\n  \"birth-date\": \"2020-05-15\",\n  \"weight-kg\": 25.5,\n  \"notes\": \"Muito brincalhão e amigável\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/pets",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "pets"]
+						},
+						"description": "Cria um novo pet associado a um usuário. Use {{user_id}} da variável de ambiente."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Services",
+			"item": [
+				{
+					"name": "Create Service",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"tenant-id\": \"a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11\",\n  \"name\": \"Consulta Veterinária\",\n  \"description\": \"Consulta geral com veterinário\",\n  \"category\": \"Consulta\",\n  \"price-cents\": 15000,\n  \"duration-minutes\": 30,\n  \"active\": true\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/services",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "services"]
+						},
+						"description": "Cria um novo serviço. Preço em centavos (15000 = R$ 150,00)"
+					},
+					"response": []
+				},
+				{
+					"name": "List Services",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/services?tenant-id={{tenant_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "services"],
+							"query": [
+								{
+									"key": "tenant-id",
+									"value": "{{tenant_id}}",
+									"description": "ID do tenant"
+								}
+							]
+						},
+						"description": "Lista todos os serviços de um tenant"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Professionals",
+			"item": [
+				{
+					"name": "Create Professional",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"tenant-id\": \"a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11\",\n  \"name\": \"Dr. Maria Santos\",\n  \"specialty\": \"Clínica Geral\",\n  \"availability\": {\n    \"monday\": {\"start\": \"09:00\", \"end\": \"18:00\"},\n    \"tuesday\": {\"start\": \"09:00\", \"end\": \"18:00\"},\n    \"wednesday\": {\"start\": \"09:00\", \"end\": \"18:00\"},\n    \"thursday\": {\"start\": \"09:00\", \"end\": \"18:00\"},\n    \"friday\": {\"start\": \"09:00\", \"end\": \"18:00\"}\n  },\n  \"active\": true\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/professionals",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "professionals"]
+						},
+						"description": "Cria um novo profissional"
+					},
+					"response": []
+				},
+				{
+					"name": "List Professionals",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/professionals?tenant-id={{tenant_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "professionals"],
+							"query": [
+								{
+									"key": "tenant-id",
+									"value": "{{tenant_id}}",
+									"description": "ID do tenant"
+								}
+							]
+						},
+						"description": "Lista todos os profissionais de um tenant"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Appointments",
+			"item": [
+				{
+					"name": "Create Appointment",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"tenant-id\": \"a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11\",\n  \"user-id\": \"{{user_id}}\",\n  \"pet-id\": \"{{pet_id}}\",\n  \"professional-id\": \"{{professional_id}}\",\n  \"service-id\": \"{{service_id}}\",\n  \"start-time\": \"2026-01-25T10:00:00Z\",\n  \"notes\": \"Primeira consulta do Rex\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/appointments",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "appointments"]
+						},
+						"description": "Cria um novo agendamento. Retorna 202 Accepted. Use variáveis {{user_id}}, {{pet_id}}, {{professional_id}}, {{service_id}}"
+					},
+					"response": []
+				},
+				{
+					"name": "List Appointments",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/appointments?tenant-id={{tenant_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "appointments"],
+							"query": [
+								{
+									"key": "tenant-id",
+									"value": "{{tenant_id}}",
+									"description": "ID do tenant"
+								}
+							]
+						},
+						"description": "Lista todos os agendamentos de um tenant"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Appointment by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/appointments/{{appointment_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "appointments", "{{appointment_id}}"]
+						},
+						"description": "Busca um agendamento específico por ID"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Schedule",
+			"item": [
+				{
+					"name": "Get Professional Schedule",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/schedule/{{professional_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "schedule", "{{professional_id}}"]
+						},
+						"description": "Retorna a agenda de um profissional específico"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Tenants",
+			"item": [
+				{
+					"name": "Create Tenant",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.id) {",
+									"        pm.environment.set('tenant_id', jsonData.id);",
+									"        pm.collectionVariables.set('tenant_id', jsonData.id);",
+									"        console.log('Tenant ID salvo:', jsonData.id);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"PetShop Demo\",\n  \"slug\": \"petshop-demo\",\n  \"contact-email\": \"contato@petshop.com\",\n  \"contact-phone\": \"+5511999999999\",\n  \"address\": \"Rua dos Pets, 123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/tenants",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "tenants"]
+						},
+						"description": "Cria um novo tenant (petshop/clínica). O ID é salvo automaticamente na variável {{tenant_id}}."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Tenant by Slug",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/tenants/{{tenant_slug}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "tenants", "{{tenant_slug}}"]
+						},
+						"description": "Busca configurações de um tenant pelo slug (whitelabel)"
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:3000",
+			"type": "string"
+		},
+		{
+			"key": "tenant_id",
+			"value": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+			"type": "string"
+		},
+		{
+			"key": "user_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "pet_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "professional_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "service_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "appointment_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "tenant_slug",
+			"value": "petoo",
+			"type": "string"
+		},
+		{
+			"key": "auth_token",
+			"value": "",
+			"type": "string"
+		}
+	]
+}
+

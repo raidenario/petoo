@@ -1,0 +1,43 @@
+meta {
+  name: Create Professional
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{base_url}}/api/v1/professionals
+  body: json
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+}
+
+auth:bearer {
+  token: {{auth_token}}
+}
+
+body:json {
+  {
+    "tenant-id": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+    "name": "Dr. Maria Santos",
+    "specialty": "Clínica Geral",
+    "availability": {
+      "monday": {"start": "09:00", "end": "18:00"},
+      "tuesday": {"start": "09:00", "end": "18:00"},
+      "wednesday": {"start": "09:00", "end": "18:00"},
+      "thursday": {"start": "09:00", "end": "18:00"},
+      "friday": {"start": "09:00", "end": "18:00"}
+    },
+    "active": true
+  }
+}
+
+settings {
+  encodeUrl: true
+}
+
+docs {
+  Cria um novo profissional
+}

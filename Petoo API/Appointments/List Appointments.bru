@@ -1,0 +1,23 @@
+meta {
+  name: List Appointments
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{base_url}}/api/v1/appointments?tenant-id={{tenant_id}}
+  body: none
+  auth: inherit
+}
+
+params:query {
+  tenant-id: {{tenant_id}}
+}
+
+settings {
+  encodeUrl: true
+}
+
+docs {
+  Lista todos os agendamentos de um tenant
+}

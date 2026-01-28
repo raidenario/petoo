@@ -1,0 +1,40 @@
+meta {
+  name: Create Service
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{base_url}}/api/v1/services
+  body: json
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+}
+
+auth:bearer {
+  token: {{auth_token}}
+}
+
+body:json {
+  {
+    "tenant-id": "245b54c4-81cc-4908-b0ea-02b848458c17",
+    "name": "Tosa GOD",
+    "description": "TOSA COM O MELHOR TOSADOR",
+    "category": "Tosa",
+    "price-cents": 15000,
+    "duration-minutes": 30,
+    "active": true
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
+
+docs {
+  Cria um novo serviço. Preço em centavos (15000 = R$ 150,00)
+}

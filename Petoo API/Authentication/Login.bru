@@ -1,0 +1,46 @@
+meta {
+  name: Login
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{base_url}}/api/v1/auth/login
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "juliano2@email.com",
+    "password": "fera51246"
+  }
+}
+
+script:post-response {
+  if (res.getStatus() === 200) {
+      const jsonData = res.getBody();
+      if (jsonData.token) {
+          bru.setEnvVar('auth_token', jsonData.token);
+          bru.setVar('auth_token', jsonData.token);
+          console.log('Token salvo automaticamente:', jsonData.token.substring(0, 20) + '...');
+      }
+      if (jsonData.user && jsonData.user.id) {
+          bru.setEnvVar('user_id', jsonData.user.id);
+          bru.setVar('user_id', jsonData.user.id);
+      }
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
+
+docs {
+  Autentica um usuário e retorna um token JWT. O token é salvo automaticamente na variável {{auth_token}} após o login bem-sucedido.
+}

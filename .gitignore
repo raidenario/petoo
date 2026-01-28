@@ -1,0 +1,60 @@
+# Dependencies
+node_modules/
+.npm
+
+# Clojure
+.cpcache/
+.nrepl-port
+*.jar
+target/
+classes/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+logs/
+
+# Mobile
+mobile/.expo/
+mobile/dist/
+mobile/android/
+mobile/ios/
+
+# Docker volumes (if not using named volumes)
+data/
+
+# Uploads
+uploads/
+backend/uploads/
+
+# Build artifacts
+*.jar
+*.uberjar
+target/
+
+# Tools & IDEs
+.clj-kondo/
+.lsp/
+.cpcache/
+.nrepl-port
+.idea/
+.vscode/
+
+# Environment
+.env
+.env.*

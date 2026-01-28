@@ -1,0 +1,45 @@
+meta {
+  name: Create Tenant
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{base_url}}/api/v1/tenants
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "name": "Giovanna Tosas",
+    "slug": "giovanna tosas",
+    "contact-email": "contato@gitosas.com",
+    "contact-phone": "+5511999999999",
+    "address": "Rua boladinha 2015"
+  }
+}
+
+script:post-response {
+  if (res.getStatus() === 201) {
+      const jsonData = res.getBody();
+      if (jsonData.id) {
+          bru.setEnvVar('tenant_id', jsonData.id);
+          bru.setVar('tenant_id', jsonData.id);
+          console.log('Tenant ID salvo:', jsonData.id);
+      }
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
+
+docs {
+  Cria um novo tenant (petshop/clínica). O ID é salvo automaticamente na variável {{tenant_id}}.
+}
