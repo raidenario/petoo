@@ -248,7 +248,7 @@
        router
        (ring/routes
 
-        (ring/create-resource-handler {:path "/"})
+        (ring/create-resource-handler {:path "/" :root "public"})
         (ring/create-default-handler
          {:not-found (constantly {:status 404
                                   :body {:error "Not found"}})

@@ -20,17 +20,11 @@
             [pet-app.workers.manager :as workers])
   (:import [com.zaxxer.hikari HikariDataSource HikariConfig]))
 
-;; ============================================
-;; Configuration
-;; ============================================
 
 (defmethod ig/init-key :pet-app/config [_ {:keys [profile]}]
   (log/info "Loading configuration with profile:" (or profile :default))
   (aero/read-config (io/resource "config.edn") {:profile profile}))
 
-;; ============================================
-;; Database - HikariCP Connection Pool
-;; ============================================
 
 (defmethod ig/init-key :pet-app/db [_ {:keys [config]}]
   (let [db-config (:database config)
@@ -69,9 +63,6 @@
   (when datasource
     (.close ^HikariDataSource datasource)))
 
-;; ============================================
-;; Kafka Producer
-;; ============================================
 
 (defmethod ig/init-key :pet-app/kafka [_ {:keys [config]}]
   (let [kafka-config (:kafka config)]
@@ -92,9 +83,6 @@
     (log/info "Closing Kafka producer...")
     (kafka/close-producer producer)))
 
-;; ============================================
-;; Workers (Kafka Consumers)
-;; ============================================
 
 (defmethod ig/init-key :pet-app/workers [_ {:keys [config db kafka]}]
   (let [kafka-config (:kafka config)
@@ -124,25 +112,16 @@
     (log/info "Stopping Kafka workers...")
     (workers/stop-all!)))
 
-;; ============================================
-;; Router
-;; ============================================
 
 (defmethod ig/init-key :pet-app/router [_ {:keys [db kafka config]}]
   (log/info "Initializing router...")
   (routes/router {:db db :kafka kafka :config config}))
 
-;; ============================================
-;; Ring Handler
-;; ============================================
 
 (defmethod ig/init-key :pet-app/handler [_ {:keys [router]}]
   (log/info "Initializing Ring handler...")
   (routes/handler router))
 
-;; ============================================
-;; HTTP Server - Jetty
-;; ============================================
 
 (defmethod ig/init-key :pet-app/server [_ {:keys [config handler]}]
   (let [{:keys [port host]} (:http-server config)]
@@ -157,9 +136,6 @@
   (when server
     (.stop server)))
 
-;; ============================================
-;; System Config Map
-;; ============================================
 
 (def system-config
   "Integrant configuration map defining component dependencies."
@@ -182,9 +158,6 @@
    :pet-app/server {:config (ig/ref :pet-app/config)
                     :handler (ig/ref :pet-app/handler)}})
 
-;; ============================================
-;; System Lifecycle Functions
-;; ============================================
 
 (defn start-system
   "Initialize and start the system."

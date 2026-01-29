@@ -14,9 +14,6 @@
             [clojure.data.json :as json])
   (:import [java.util UUID]))
 
-;; ============================================
-;; Appointment View Projection
-;; ============================================
 
 (defn fetch-appointment-data
   "Fetch all related data for an appointment."
@@ -115,9 +112,6 @@
 
         (log/debug "Updated appointments_view for:" appointment-id)))))
 
-;; ============================================
-;; Schedule Slots Projection
-;; ============================================
 
 (defn update-schedule-slot!
   "Update or create a schedule slot in read_model."
@@ -136,9 +130,6 @@
                     :on-conflict [:tenant-id :professional-id :slot-date :slot-time]
                     :do-update-set [:is-available :appointment-id :updated-at]}))
 
-;; ============================================
-;; Event Handlers
-;; ============================================
 
 (defn handle-appointment-created
   "Project appointment.created to read models."
@@ -201,9 +192,6 @@
     (log/info "Projecting payment.failed:" appointment-id)
     (upsert-appointment-view! ds appointment-id)))
 
-;; ============================================
-;; Event Router
-;; ============================================
 
 (defn handle-event
   "Route event to appropriate projection handler."

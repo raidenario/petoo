@@ -150,8 +150,8 @@
                                 {:select [:id :tenant-id :email :password-hash :name :role :status]
                                  :from [:core.users]
                                  :where [:and
-                                        [:= :email email]
-                                        [:= :status "ACTIVE"]]})]
+                                         [:= :email email]
+                                         [:= :status "ACTIVE"]]})]
       (when (and user
                  (verify-password password (:password-hash user)))
         (dissoc user :password-hash)))
@@ -174,8 +174,8 @@
                      {:select [:id :tenant-id :email :name :role :status]
                       :from [:core.users]
                       :where [:and
-                             [:= :id [:cast user-id :uuid]]
-                             [:= :status "ACTIVE"]]})
+                              [:= :id [:cast user-id :uuid]]
+                              [:= :status "ACTIVE"]]})
     (catch Exception e
       (log/error e "Failed to get user by ID:" user-id)
       nil)))

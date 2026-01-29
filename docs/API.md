@@ -70,13 +70,22 @@ A API utiliza **JSON Web Tokens (JWT)** para autenticação.
 
 **Request Body:**
 ```json
-{
-  "tenant-id": "uuid",
-  "user-id": "uuid",
-  "name": "Rex",
-  "species": "DOG",
-  "breed": "Golden Retriever",
-  "size": "LARGE"
+  "size": "LARGE",
+  "notes": {
+    "sedentary": true,
+    "walk-times": "07:00, 18:00",
+    "alimentation": "Ração Premium",
+    "castrated": true,
+    "objects": "Bolinha azul",
+    "others": "Gosta de carinho na barriga"
+  },
+  "medical-notes": {
+    "mastigation": "medium",
+    "bowel_movement_frequency": "2x ao dia",
+    "vaccines": "V10, Raiva",
+    "patology": true,
+    "patology-description": "Dermatite atópica"
+  }
 }
 ```
 
@@ -99,9 +108,37 @@ A API utiliza **JSON Web Tokens (JWT)** para autenticação.
 
 ---
 
+## Upload de Imagens
+
+### 6. Upload de Foto do Pet
+`POST /api/v1/pets/:id/photo`
+*Requer Header: `Authorization: Bearer <token>`*
+*Content-Type: `multipart/form-data`*
+
+**Form Data:**
+- `file`: Arquivo de imagem (jpg, png)
+
+### 7. Upload de Avatar do Profissional
+`POST /api/v1/professionals/:id/avatar`
+*Requer Header: `Authorization: Bearer <token>`*
+*Content-Type: `multipart/form-data`*
+
+**Form Data:**
+- `file`: Arquivo de imagem
+
+### 8. Upload de Logo do Tenant
+`POST /api/v1/tenants/:id/logo`
+*Requer Header: `Authorization: Bearer <token>`*
+*Content-Type: `multipart/form-data`*
+
+**Form Data:**
+- `file`: Arquivo de imagem
+
+---
+
 ## Queries (Leitura)
 
-### 6. Listar Serviços
+### 9. Listar Serviços
 `GET /api/v1/services`
 
 **Response (200 OK):**

@@ -16,9 +16,6 @@
             [clojure.tools.logging :as log])
   (:import [java.util UUID]))
 
-;; ============================================
-;; Wallet Operations
-;; ============================================
 
 (defn get-tenant-wallet
   "Get or create wallet for tenant."
@@ -47,9 +44,6 @@
                     :from [:financial.wallets]
                     :where [:= :owner-type "PLATFORM"]}))
 
-;; ============================================
-;; Transaction & Ledger Operations
-;; ============================================
 
 (defn create-transaction!
   "Create a new transaction record."
@@ -102,9 +96,6 @@
                     :where [:= :id [:cast wallet-id :uuid]]
                     :returning [:*]}))
 
-;; ============================================
-;; Payment Gateway Simulation
-;; ============================================
 
 (defn simulate-payment-gateway
   "Simulate a payment gateway call.
@@ -122,9 +113,6 @@
     {:success false
      :error "Payment declined by issuer"}))
 
-;; ============================================
-;; Commission Calculation
-;; ============================================
 
 (def PLATFORM_COMMISSION_RATE 0.10) ;; 10%
 
@@ -137,9 +125,6 @@
      :platform-fee platform-fee
      :tenant-amount tenant-amount}))
 
-;; ============================================
-;; Event Handler
-;; ============================================
 
 (defn handle-slot-reserved
   "Handle slot.reserved event.
@@ -250,9 +235,6 @@
       (catch Exception e
         (log/error e "Error processing payment for appointment:" appointment-id)))))
 
-;; ============================================
-;; Event Router
-;; ============================================
 
 (defn handle-event
   "Route event to appropriate handler."
@@ -262,9 +244,6 @@
       "slot.reserved" (handle-slot-reserved event)
       (log/warn "Unknown event type:" event-type))))
 
-;; ============================================
-;; Worker Startup
-;; ============================================
 
 (defn start
   "Start the financial worker."
