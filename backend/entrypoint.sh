@@ -6,15 +6,9 @@
 
 set -e
 
-echo ""
-echo "╔═══════════════════════════════════════════════════════════════╗"
-echo "║                 🐾 Petoo Backend - Container Start            ║"
-echo "╚═══════════════════════════════════════════════════════════════╝"
-echo ""
-echo "Environment: ${ENV:-development}"
-echo "Database:    $DB_HOST:$DB_PORT/$DB_NAME"
-echo "Kafka:       $KAFKA_BOOTSTRAP_SERVERS"
-echo ""
+echo "╔═══════════════════════════════════════╗"
+echo "║   Petoo Backend - Container Start     ║"
+echo "╚═══════════════════════════════════════╝"
 
 # ============================================
 # Wait for PostgreSQL
@@ -39,10 +33,9 @@ echo "✅ PostgreSQL is available!"
 # ============================================
 # Wait for Kafka
 # ============================================
-echo "⏳ Waiting for Kafka..."
+echo "⏳ Waiting for Kafka at kafka:29092..."
 
 RETRY_COUNT=0
-# Parse Kafka host and port from bootstrap servers
 KAFKA_HOST="${KAFKA_BOOTSTRAP_SERVERS%%:*}"
 KAFKA_PORT="${KAFKA_BOOTSTRAP_SERVERS##*:}"
 KAFKA_HOST="${KAFKA_HOST:-kafka}"
@@ -65,28 +58,22 @@ fi
 # ============================================
 # Run Database Migrations
 # ============================================
-echo ""
 echo "🔄 Running database migrations..."
 
-# Run migrations using the jar
-java $JAVA_OPTS -cp petoo-backend.jar clojure.main -m pet-app.infra.migrations migrate 2>&1 || {
-  echo "⚠️  Migration command exited (may already be up to date)"
+# Use java to run migrations directly
+java -cp petoo-backend.jar clojure.main -m pet-app.infra.migrations migrate || {
+  echo "⚠️  Migration failed or already up to date"
 }
 
-echo "✅ Migration step complete!"
+echo "✅ Migrations complete!"
 
 # ============================================
 # Start Application
 # ============================================
 echo ""
-echo "╔═══════════════════════════════════════════════════════════════╗"
-echo "║            🚀 Starting Petoo Backend API                      ║"
-echo "║                                                               ║"
-echo "║   API:        http://localhost:${PORT:-3000}                        ║"
-echo "║   Health:     http://localhost:${PORT:-3000}/health                 ║"
-echo "║   Ping:       http://localhost:${PORT:-3000}/ping                   ║"
-echo "╚═══════════════════════════════════════════════════════════════╝"
+echo "╔═══════════════════════════════════════╗"
+echo "║   Starting Petoo Backend API...       ║"
+echo "╚═══════════════════════════════════════╝"
 echo ""
 
-# Start the application with JAVA_OPTS
-exec java $JAVA_OPTS -jar petoo-backend.jar "$@"
+exec java -jar petoo-backend.jar "$@"

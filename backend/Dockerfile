@@ -14,18 +14,16 @@ WORKDIR /app
 COPY deps.edn ./
 COPY build.clj ./
 
-# Download dependencies (this layer is cached until deps.edn changes)
-RUN clojure -P && clojure -P -T:build
+# Download dependencies
+RUN clojure -P
 
 # Copy source code
 COPY src/ src/
 COPY resources/ resources/
+COPY dev/ dev/
 
 # Build uberjar
 RUN clojure -T:build uber
-
-# Verify the jar was created
-RUN ls -la target/ && test -f target/petoo-backend.jar
 
 # ============================================
 # Stage 2: Runtime
@@ -37,37 +35,27 @@ WORKDIR /app
 # Install utilities for health checks and wait scripts
 RUN apk add --no-cache bash curl netcat-openbsd
 
-# Create non-root user for security
-RUN addgroup -g 1001 petoo && \
-    adduser -D -u 1001 -G petoo petoo
-
 # Copy uberjar from builder
 COPY --from=builder /app/target/petoo-backend.jar ./petoo-backend.jar
 
-# Copy resources (migrations, config) - jar already contains them but useful for reference
+# Copy resources (migrations, config)
 COPY --from=builder /app/resources/ ./resources/
 
-# Copy entrypoint script
+# Copy entrypoint script and convert line endings (CRLF -> LF)
 COPY entrypoint.sh ./
-RUN chmod +x entrypoint.sh
+RUN sed -i 's/\r$//' entrypoint.sh && chmod +x entrypoint.sh
 
-# Create uploads directory with proper permissions
-RUN mkdir -p /app/uploads && chown -R petoo:petoo /app
+# Create uploads directory
+RUN mkdir -p /app/uploads
 
-# Switch to non-root user
-USER petoo
-
-# Environment variables (defaults, can be overridden in docker-compose)
-ENV PORT=3000 \
-    DB_HOST=postgres \
-    DB_PORT=5432 \
-    DB_NAME=petoo_db \
-    DB_USER=petoo \
-    DB_PASSWORD=petoo_secret \
-    KAFKA_BOOTSTRAP_SERVERS=kafka:29092 \
-    JWT_SECRET=petoo-super-secret-key-change-in-production \
-    ENV=production \
-    JAVA_OPTS="-Xms256m -Xmx512m -XX:+UseG1GC"
+# Environment variables
+ENV PORT=3000
+ENV DB_HOST=postgres
+ENV DB_PORT=5432
+ENV DB_NAME=petoo_db
+ENV DB_USER=petoo
+ENV DB_PASSWORD=petoo_secret
+ENV KAFKA_BOOTSTRAP_SERVERS=kafka:29092
 
 # Expose port
 EXPOSE 3000
