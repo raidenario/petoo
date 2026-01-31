@@ -77,13 +77,13 @@
 
           ;; Publicar evento
           (when kafka-producer
-            (kafka/publish-event! kafka-producer
-                                  (:pet-events topics)
-                                  pet-id
-                                  {:event-type "PetCreated"
-                                   :pet-id pet-id
-                                   :client-id client-id
-                                   :name (:name body)}))
+            (kafka/send-event! kafka-producer
+                               (:pet-events topics)
+                               pet-id
+                               {:event-type "PetCreated"
+                                :pet-id pet-id
+                                :client-id client-id
+                                :name (:name body)}))
 
           (log/info "Pet created:" pet-id "for client:" client-id)
 
@@ -136,13 +136,13 @@
 
               ;; Publicar evento
               (when kafka-producer
-                (kafka/publish-event! kafka-producer
-                                      (:pet-events topics)
-                                      pet-id
-                                      {:event-type "PetUpdated"
-                                       :pet-id pet-id
-                                       :client-id client-id
-                                       :updated-fields (keys update-data)}))
+                (kafka/send-event! kafka-producer
+                                   (:pet-events topics)
+                                   pet-id
+                                   {:event-type "PetUpdated"
+                                    :pet-id pet-id
+                                    :client-id client-id
+                                    :updated-fields (keys update-data)}))
 
               (log/info "Pet updated:" pet-id)
 
@@ -171,12 +171,12 @@
           (if (pos? (count result))
             (do
               (when kafka-producer
-                (kafka/publish-event! kafka-producer
-                                      (:pet-events topics)
-                                      pet-id
-                                      {:event-type "PetDeleted"
-                                       :pet-id pet-id
-                                       :client-id client-id}))
+                (kafka/send-event! kafka-producer
+                                   (:pet-events topics)
+                                   pet-id
+                                   {:event-type "PetDeleted"
+                                    :pet-id pet-id
+                                    :client-id client-id}))
               (log/info "Pet deleted:" pet-id)
               (response-ok {:message "Pet deleted successfully"}))
             (response-not-found "Pet not found or you don't have access")))
@@ -258,14 +258,14 @@
 
               ;; Publicar evento
               (when kafka-producer
-                (kafka/publish-event! kafka-producer
-                                      (:appointment-events topics)
-                                      appointment-id
-                                      {:event-type "AppointmentCreated"
-                                       :appointment-id appointment-id
-                                       :client-id client-id
-                                       :enterprise-id (:enterprise-id body)
-                                       :service-id (:service-id body)}))
+                (kafka/send-event! kafka-producer
+                                   (:appointment-events topics)
+                                   appointment-id
+                                   {:event-type "AppointmentCreated"
+                                    :appointment-id appointment-id
+                                    :client-id client-id
+                                    :enterprise-id (:enterprise-id body)
+                                    :service-id (:service-id body)}))
 
               (log/info "Appointment created:" appointment-id
                         "for client:" client-id
@@ -299,13 +299,13 @@
           (if (pos? (count result))
             (do
               (when kafka-producer
-                (kafka/publish-event! kafka-producer
-                                      (:appointment-events topics)
-                                      appointment-id
-                                      {:event-type "AppointmentCancelled"
-                                       :appointment-id appointment-id
-                                       :client-id client-id
-                                       :cancelled-by "client"}))
+                (kafka/send-event! kafka-producer
+                                   (:appointment-events topics)
+                                   appointment-id
+                                   {:event-type "AppointmentCancelled"
+                                    :appointment-id appointment-id
+                                    :client-id client-id
+                                    :cancelled-by "client"}))
               (log/info "Appointment cancelled:" appointment-id)
               (response-ok {:message "Appointment cancelled successfully"}))
             (response-not-found "Appointment not found or cannot be cancelled")))
