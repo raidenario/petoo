@@ -349,11 +349,17 @@
         {:post {:summary "Create new user (registration)"
                 :handler (partial commands/create-user cmd-deps)}}]
 
-       ;; Pets - POST only (protected)
+       ;; Who Am I - Unified endpoint for verifying identity
+       ["/users/me"
+        {:get {:summary "Get current user info (Client or Enterprise)"
+               :handler (-> (partial queries/get-current-user query-deps)
+                            middleware/require-authentication
+                            middleware/wrap-authentication)}}]
+
+       ;; Pets - POST only
        ["/pets"
         {:post {:summary "Create new pet"
                 :handler (-> (partial commands/create-pet cmd-deps)
-                             (middleware/require-enterprise-role #{:MASTER :ADMIN :EMPLOYEE})
                              middleware/require-authentication
                              middleware/wrap-authentication)}}]
 
