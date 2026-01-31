@@ -26,12 +26,18 @@ body:json {
     "professional-id": "{{professional_id}}",
     "service-id": "{{service_id}}",
     "start-time": "2026-01-25T10:00:00Z",
+    "end-time": "2026-01-25T10:30:00Z",
     "notes": "Primeira consulta do Rex"
   }
 }
 
+vars:pre-request {
+  enterprise_id: 617b58d2-3dff-431d-913e-a08f0007b483
+}
+
 settings {
   encodeUrl: true
+  timeout: 0
 }
 
 docs {

@@ -4,7 +4,86 @@
    Provides utilities to ensure queries are always filtered by enterprise-id
    when the user is an Enterprise User."
   (:require [pet-app.infra.db :as db]
+            [pet-app.api.helpers :refer [ok error not-found]]
             [clojure.tools.logging :as log]))
+
+;; ============================================
+;; Public Enterprise Discovery
+;; ============================================
+
+(defn list-all-enterprises
+  "List all active enterprises.
+   
+   Public endpoint for enterprise discovery (no auth required)."
+  [{:keys [db]} _request]
+  (try
+    (let [enterprises (db/execute! db
+                                   {:select [:id :name :slug :logo-url :contact-email
+                                             :address :latitude :longitude :status :created-at]
+                                    :from [:core.enterprises]
+                                    :where [:= :status "ACTIVE"]
+                                    :order-by [[:name :asc]]})]
+      (ok {:enterprises (mapv (fn [e]
+                                {:id (str (:id e))
+                                 :name (:name e)
+                                 :slug (:slug e)
+                                 :logo_url (:logo-url e)
+                                 :contact_email (:contact-email e)
+                                 :address (:address e)
+                                 :latitude (:latitude e)
+                                 :longitude (:longitude e)
+                                 :status (:status e)})
+                              enterprises)
+           :count (count enterprises)}))
+    (catch Exception e
+      (log/error e "Failed to list enterprises")
+      (error 500 "Failed to list enterprises"))))
+
+(defn get-enterprise-by-slug
+  "Get enterprise details by slug.
+   
+   Public endpoint for viewing enterprise info."
+  [{:keys [db]} request]
+  (let [slug (get-in request [:path-params :slug])]
+    (try
+      (let [enterprise (db/execute-one! db
+                                        {:select [:*]
+                                         :from [:core.enterprises]
+                                         :where [:and
+                                                 [:= :slug slug]
+                                                 [:= :status "ACTIVE"]]})
+            services-count (when enterprise
+                             (:count (db/execute-one! db
+                                                      {:select [[:%count.* :count]]
+                                                       :from [:core.services]
+                                                       :where [:and
+                                                               [:= :enterprise-id (:id enterprise)]
+                                                               [:= :active true]]})))
+            professionals-count (when enterprise
+                                  (:count (db/execute-one! db
+                                                           {:select [[:%count.* :count]]
+                                                            :from [:core.professionals]
+                                                            :where [:and
+                                                                    [:= :enterprise-id (:id enterprise)]
+                                                                    [:= :active true]]})))]
+        (if-not enterprise
+          (not-found "Enterprise not found")
+          (ok {:enterprise {:id (str (:id enterprise))
+                            :name (:name enterprise)
+                            :slug (:slug enterprise)
+                            :logo_url (:logo-url enterprise)
+                            :contact_email (:contact-email enterprise)
+                            :contact_phone (:contact-phone enterprise)
+                            :address (:address enterprise)
+                            :latitude (:latitude enterprise)
+                            :longitude (:longitude enterprise)
+                            :services_count services-count
+                            :professionals_count professionals-count}})))
+      (catch Exception e
+        (log/error e "Failed to get enterprise by slug")
+        (error 500 "Failed to get enterprise")))))
+
+
 
 ;; ============================================
 ;; Enterprise Filter Helper

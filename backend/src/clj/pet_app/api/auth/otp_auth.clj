@@ -181,9 +181,21 @@
                                                 :latitude :longitude :status
                                                 :created-at :updated-at]
                                        :from :core.clients
-                                       :where [:= :id [:cast client-id :uuid]]})]
+                                       :where [:= :id [:cast client-id :uuid]]})
+              ;; Fetch wallet info (clients use USER type wallet linked by client-id)
+              wallet (db/execute-one! ds
+                                      {:select [:id :balance-cents :pending-cents :updated-at]
+                                       :from [:financial.wallets]
+                                       :where [:and
+                                               [:= :owner-id [:cast client-id :uuid]]
+                                               [:= :owner-type "USER"]]})]
           (if client
-            (response-ok {:client (update client :id str)})
+            (response-ok {:client (update client :id str)
+                          :wallet (when wallet
+                                    {:id (str (:id wallet))
+                                     :balance_cents (:balance-cents wallet)
+                                     :pending_cents (:pending-cents wallet)
+                                     :updated_at (:updated-at wallet)})})
             (response-unauthorized "Client not found")))
 
         (catch Exception e

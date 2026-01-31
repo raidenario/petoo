@@ -13,6 +13,8 @@
    [:professional-id common/uuid-string]
    [:service-id common/uuid-string]
    [:start-time common/timestamp]
+   [:end-time {:optional true} common/timestamp]
+   [:payment_method {:optional true} enums/PaymentMethod]
    [:notes {:optional true} :string]])
 
 (def CreateUser

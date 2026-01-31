@@ -16,10 +16,13 @@
             [pet-app.api.queries :as queries]
             [pet-app.api.queries.client-queries :as client-queries]
             [pet-app.api.queries.enterprise-queries :as enterprise-queries]
+            [pet-app.api.queries.pet-queries :as pet-queries]
             [pet-app.api.auth :as auth]
             [pet-app.api.auth.otp-auth :as otp-auth]
             [pet-app.api.auth.enterprise-auth :as enterprise-auth]
-            [pet-app.api.middleware :as middleware]))
+            [pet-app.api.middleware :as middleware]
+            [pet-app.api.commands.wallet-commands :as wallet-commands]
+            [pet-app.api.queries.wallet-queries :as wallet-queries]))
 
 ;; ============================================
 ;; Health & Utility Handlers
@@ -212,8 +215,55 @@
                                middleware/wrap-authentication)}}]]]
 
        ;; ============================================
-       ;; Client Routes (for pet owners)
+       ;; Wallet Routes
        ;; ============================================
+       ["/wallet"
+        ["/balance"
+         {:get {:summary "Get current user's wallet balance"
+                :handler (-> (partial wallet-queries/get-balance {:db db})
+                             middleware/require-authentication
+                             middleware/wrap-authentication)}}]
+        ["/transactions"
+         {:get {:summary "Get user transaction history"
+                :handler (-> (partial wallet-queries/get-transactions {:db db})
+                             middleware/require-authentication
+                             middleware/wrap-authentication)}}]
+        ["/deposit"
+         {:post {:summary "Request a wallet deposit"
+                 :handler (-> (partial wallet-commands/deposit-funds {:db db :kafka kafka :config config})
+                              middleware/require-authentication
+                              middleware/wrap-authentication)}}]
+        ["/dev/add-balance"
+         {:post {:summary "DEV ONLY: Manually add balance"
+                 :handler (partial wallet-commands/add-balance-dev {:db db :config config})}}]]
+
+       ["/enterprise/:enterprise-id/wallet"
+        {:get {:summary "Get enterprise wallet balance (Admin only)"
+               :handler (-> (partial wallet-queries/get-enterprise-wallet {:db db})
+                            middleware/require-authentication
+                            middleware/wrap-authentication)}}]
+
+       ;; ============================================
+       ;; User Pets (authenticated users)
+       ;; ============================================
+
+       ;; ============================================
+       ;; User Pets (authenticated users)
+       ;; ============================================
+       ["/users/me/pets"
+        {:get {:summary "List authenticated user's pets with status"
+               :handler (-> (partial pet-queries/list-user-pets {:db db})
+                            middleware/require-authentication
+                            middleware/wrap-authentication)}}]
+
+       ["/pets/:pet-id"
+        {:get {:summary "Get pet details"
+               :handler (-> (partial pet-queries/get-pet-by-id {:db db})
+                            middleware/require-authentication
+                            middleware/wrap-authentication)}}]
+
+       ;; ============================================
+       ;; Client Routes (for pet owners)
        ["/client"
         ;; Client's pets
         ["/pets"
@@ -348,7 +398,9 @@
 
        ;; Enterprises - GET by slug, POST to create (PLATFORM ONLY)
        ["/enterprises"
-        {:post {:summary "Create new enterprise"
+        {:get {:summary "List all active enterprises (public)"
+               :handler (partial enterprise-queries/list-all-enterprises {:db db})}
+         :post {:summary "Create new enterprise"
                 :handler (-> (partial commands/create-enterprise cmd-deps)
                              middleware/require-platform-admin
                              middleware/require-authentication
@@ -362,8 +414,8 @@
                              middleware/wrap-authentication)}}]
 
        ["/enterprises/:slug"
-        {:get {:summary "Get enterprise by slug (whitelabel config)"
-               :handler (partial queries/get-enterprise-by-slug query-deps)}}]]]
+        {:get {:summary "Get enterprise by slug with details (public)"
+               :handler (partial enterprise-queries/get-enterprise-by-slug {:db db})}}]]]
 
      {:data {:coercion malli-coercion/coercion
              :muuntaja m/instance

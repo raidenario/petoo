@@ -1,0 +1,49 @@
+meta {
+  name: Request Deposit
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{base_url}}/api/v1/wallet/deposit
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{auth_token}}
+}
+
+body:json {
+  {
+    "amount_cents": 50000,
+    "payment_method": "PIX"
+  }
+}
+
+docs {
+  # Request Wallet Deposit
+  
+  Initiates a deposit request to add funds to the user's wallet.
+  
+  **Authentication:** Required (Bearer token)
+  
+  **Body:**
+  ```json
+  {
+    "amount_cents": 50000,
+    "payment_method": "PIX"  // Options: "PIX", "CREDIT_CARD", "BOLETO"
+  }
+  ```
+  
+  **Response:**
+  ```json
+  {
+    "deposit_id": "uuid",
+    "status": "PENDING"
+  }
+  ```
+  
+  **Note:** The deposit will be processed asynchronously by the Financial Worker.
+  In a real implementation, you would receive a payment link or QR code.
+}

@@ -125,6 +125,10 @@
           user-type (:type user)
           user-role (keyword (:role user))]
       (cond
+        ;; BYPASS: Platform Admin has full access
+        (= user-role :PLATFORM)
+        (handler request)
+
         ;; Não é usuário enterprise
         (not= user-type "enterprise")
         {:status 403

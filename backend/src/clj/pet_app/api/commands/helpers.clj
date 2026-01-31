@@ -1,7 +1,11 @@
 (ns pet-app.api.commands.helpers
   "Helper functions for Command API handlers."
+  (:require [clojure.data.json :as json])
   (:import [java.util UUID]
            [java.time Instant Duration]))
+
+(defn ->json [data]
+  (json/write-str data))
 
 (defn uuid []
   (str (UUID/randomUUID)))

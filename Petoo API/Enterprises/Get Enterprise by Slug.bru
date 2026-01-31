@@ -5,20 +5,43 @@ meta {
 }
 
 get {
-  url: {{base_url}}/api/v1/enterprises/{{enterprise_slug}}
+  url: {{base_url}}/api/v1/enterprises/:slug
   body: none
-  auth: inherit
+  auth: none
 }
 
-vars:pre-request {
-  enterprise_slug: meu-pet-shop
-}
-
-settings {
-  encodeUrl: true
-  timeout: 0
+params:path {
+  slug: pet-shop-abc
 }
 
 docs {
-  Busca configurações de uma enterprise pelo slug (whitelabel)
+  # Get Enterprise by Slug
+  
+  **Public Endpoint** - No authentication required.
+  
+  Gets enterprise details by slug including services and professionals count.
+  
+  ## Path Parameters
+  
+  - `slug` - Enterprise slug (URL-friendly name)
+  
+  ## Response
+  
+  ```json
+  {
+    "enterprise": {
+      "id": "uuid",
+      "name": "Pet Shop ABC",
+      "slug": "pet-shop-abc",
+      "logo_url": null,
+      "contact_email": "contato@petshop.com",
+      "contact_phone": "+5511999999999",
+      "address": "Rua das Flores, 123",
+      "latitude": -23.5505,
+      "longitude": -46.6333,
+      "services_count": 5,
+      "professionals_count": 3
+    }
+  }
+  ```
 }

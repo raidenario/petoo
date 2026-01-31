@@ -7,25 +7,33 @@ meta {
 post {
   url: {{base_url}}/api/v1/auth/enterprise/register
   body: json
-  auth: inherit
+  auth: bearer
 }
 
 headers {
   Content-Type: application/json
 }
 
+auth:bearer {
+  token: {{auth_token}}
+}
+
 body:json {
   {
     "enterprise": {
-      "name": "Meu Pet Shop",
-      "slug": "meu-pet-shop",
-      "contact-email": "contato@meupetshop.com",
+      "name": "Pet Shop Exemplo",
+      "slug": "petshop-exemplo",
+      "contact-email": "contato@petshop.com",
+      "contact-phone": "+5511999998888",
+      "cnpj": "12.345.678/0001-90",
+      "service_type": "petshop",
+      "description": "O melhor pet shop da cidade",
       "logo-url": "https://img.logo.com/logo.png"
     },
     "user": {
-      "email": "dono@meupetshop.com",
-      "password": "senha123",
-      "name": "João Proprietário"
+      "email": "admin@petshop.com",
+      "password": "senha12345",
+      "name": "João Admin"
     }
   }
 }
@@ -41,10 +49,51 @@ script:post-response {
           bru.setEnvVar('enterprise_id', jsonData.enterprise.id);
           bru.setVar('enterprise_id', jsonData.enterprise.id);
       }
+      if (jsonData.user && jsonData.user.id) {
+          bru.setEnvVar('user_id', jsonData.user.id);
+          bru.setVar('user_id', jsonData.user.id);
+      }
   }
 }
 
 docs {
-  Registra uma nova Enterprise e cria o primeiro usuário com role MASTER.
-  O campo `logo-url` foi adicionado conforme solicitado.
+  # Register New Enterprise
+  
+  **⚠️ Requires PLATFORM token!**
+  
+  This endpoint creates a new Enterprise (pet shop/clinic) and its first MASTER user.
+  
+  **Authentication:** Bearer token with PLATFORM role
+  
+  **How to use:**
+  1. First, call `GET /api/v1/auth/dev-platform-login` to get a PLATFORM token
+  2. The token is automatically saved to `{{auth_token}}`
+  3. Then call this endpoint
+  
+  **Body:**
+  ```json
+  {
+    "enterprise": {
+      "name": "Pet Shop Name",
+      "slug": "petshop-slug",
+      "contact-email": "contact@email.com",
+      "cnpj": "12.345.678/0001-90",
+      "service_type": "petshop",
+      "description": "Description"
+    },
+    "user": {
+      "email": "admin@petshop.com",
+      "password": "password123",
+      "name": "Admin Name"
+    }
+  }
+  ```
+  
+  **Password Requirement:** Minimum 8 characters
+  
+  **Response (201):**
+  - Creates the enterprise
+  - Creates the MASTER user
+  - Returns a new token for the MASTER user
+  - Auto-saves `enterprise_id` and `user_id` to environment
 }
