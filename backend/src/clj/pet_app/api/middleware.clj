@@ -125,6 +125,10 @@
           user-type (:type user)
           user-role (keyword (:role user))]
       (cond
+        ;; BYPASS: Platform Admin has full access
+        (= user-role :PLATFORM)
+        (handler request)
+
         ;; Não é usuário enterprise
         (not= user-type "enterprise")
         {:status 403
@@ -151,6 +155,21 @@
   "Convenience middleware: requer role MASTER."
   [handler]
   (require-enterprise-role handler #{:MASTER}))
+
+(defn require-platform-admin
+  "Middleware que requer autenticação de Administrador da Plataforma (PETOO).
+   
+   Garante que apenas superusuários possam realizar operações globais
+   (como criar novas enterprises)."
+  [handler]
+  (fn [request]
+    (let [user (:user request)
+          user-role (keyword (:role user))]
+      (if (= user-role :PLATFORM)
+        (handler request)
+        {:status 403
+         :body {:error "Access denied. Only Platform Administrators (PETOO) can perform this action."
+                :user-role user-role}}))))
 
 ;; ============================================
 ;; Client Authorization

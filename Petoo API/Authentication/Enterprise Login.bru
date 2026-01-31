@@ -1,0 +1,44 @@
+meta {
+  name: Enterprise Login
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{base_url}}/api/v1/auth/enterprise/login
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "owner@petshop.com",
+    "password": "senha123"
+  }
+}
+
+script:post-response {
+  if (res.getStatus() === 200) {
+      const jsonData = res.getBody();
+      if (jsonData.token) {
+          bru.setEnvVar('auth_token', jsonData.token);
+          bru.setVar('auth_token', jsonData.token);
+          console.log('Token de Enterprise salvo automaticamente:', jsonData.token.substring(0, 20) + '...');
+      }
+      if (jsonData.user && jsonData.user.id) {
+          bru.setEnvVar('user_id', jsonData.user.id);
+          bru.setVar('user_id', jsonData.user.id);
+          bru.setEnvVar('enterprise_id', jsonData.user['enterprise-id']);
+          bru.setVar('enterprise_id', jsonData.user['enterprise-id']);
+      }
+  }
+}
+
+docs {
+  Autentica um usuário de Enterprise (MASTER, ADMIN, EMPLOYEE) usando email e senha.
+  Retorna um JWT de tipo 'enterprise'.
+}

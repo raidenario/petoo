@@ -20,7 +20,7 @@ auth:bearer {
 
 body:json {
   {
-    "tenant-id": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+    "enterprise-id": "{{enterprise_id}}",
     "name": "Dr. Maria Santos",
     "specialty": "Clínica Geral",
     "availability": {
@@ -34,8 +34,13 @@ body:json {
   }
 }
 
+vars:pre-request {
+  enterprise_id: 617b58d2-3dff-431d-913e-a08f0007b483
+}
+
 settings {
   encodeUrl: true
+  timeout: 0
 }
 
 docs {

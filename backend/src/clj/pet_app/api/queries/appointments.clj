@@ -7,7 +7,7 @@
   "List appointments with optional filters."
   [{:keys [ds]} request]
   (let [params (:query-params request)
-        tenant-id (get params "tenant-id")
+        enterprise-id (or (get params "enterprise-id") (get params "enterprise_id"))
         user-id (get params "user-id")
         professional-id (get params "professional-id")
         status (get params "status")
@@ -15,11 +15,11 @@
         to-date (get params "to")
         limit (min 100 (Integer/parseInt (or (get params "limit") "50")))
         offset (Integer/parseInt (or (get params "offset") "0"))]
-    (if-not tenant-id
+    (if-not enterprise-id
       {:status 400
-       :body {:error "tenant-id is required"}}
+       :body {:error "enterprise-id is required"}}
       (try
-        (let [where-clauses (cond-> [:and [:= :a.tenant-id [:cast tenant-id :uuid]]]
+        (let [where-clauses (cond-> [:and [:= :a.enterprise-id [:cast enterprise-id :uuid]]]
                               user-id (conj [:= :a.user-id [:cast user-id :uuid]])
                               professional-id (conj [:= :a.professional-id [:cast professional-id :uuid]])
                               status (conj [:= :a.status status])
@@ -86,7 +86,7 @@
     (try
       (let [result (db/execute-one! ds
                                     {:select [[:a.id :id]
-                                              [:a.tenant-id :tenant-id]
+                                              [:a.enterprise-id :enterprise-id]
                                               [:a.status :status]
                                               [:a.start-time :start-time]
                                               [:a.end-time :end-time]
@@ -120,7 +120,7 @@
         (if result
           {:status 200
            :body {:id (str (:id result))
-                  :tenant-id (str (:tenant-id result))
+                  :enterprise-id (str (:enterprise-id result))
                   :status (:status result)
                   :start-time (str (:start-time result))
                   :end-time (str (:end-time result))

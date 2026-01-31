@@ -182,29 +182,37 @@
                   user-id (str (UUID/randomUUID))
                   password-hash (auth/hash-password (:password user))
 
+                  ;; Build enterprise record with only existing columns
+                  enterprise-record (cond-> {:id [:cast enterprise-id :uuid]
+                                             :name (:name enterprise)
+                                             :slug (:slug enterprise)
+                                             :status "ACTIVE"}
+                                      (:contact-email enterprise) (assoc :contact-email (:contact-email enterprise))
+                                      (:contact-phone enterprise) (assoc :contact-phone (:contact-phone enterprise))
+                                      (:address enterprise) (assoc :address (:address enterprise))
+                                      (:logo-url enterprise) (assoc :logo-url (:logo-url enterprise))
+                                      (:latitude enterprise) (assoc :latitude (:latitude enterprise))
+                                      (:longitude enterprise) (assoc :longitude (:longitude enterprise)))
+
                   ;; Criar enterprise
                   _ (db/execute-one! ds
                                      {:insert-into :core.enterprises
-                                      :values [{:id [:cast enterprise-id :uuid]
-                                                :name (:name enterprise)
-                                                :slug (:slug enterprise)
-                                                :contact-email (:contact-email enterprise)
-                                                :contact-phone (:contact-phone enterprise)
-                                                :latitude (:latitude enterprise)
-                                                :longitude (:longitude enterprise)
-                                                :status "ACTIVE"}]})
+                                      :values [enterprise-record]})
+
+                  ;; Build user record with only existing columns
+                  user-record (cond-> {:id [:cast user-id :uuid]
+                                       :enterprise-id [:cast enterprise-id :uuid]
+                                       :email (:email user)
+                                       :password-hash password-hash
+                                       :name (:name user)
+                                       :role "MASTER"
+                                       :status "ACTIVE"}
+                                (:phone user) (assoc :phone (:phone user)))
 
                   ;; Criar usuário MASTER
                   _ (db/execute-one! ds
                                      {:insert-into :core.users
-                                      :values [{:id [:cast user-id :uuid]
-                                                :enterprise-id [:cast enterprise-id :uuid]
-                                                :email (:email user)
-                                                :password-hash password-hash
-                                                :name (:name user)
-                                                :phone (:phone user)
-                                                :role "MASTER"
-                                                :status "ACTIVE"}]})
+                                      :values [user-record]})
 
                   ;; Gerar token
                   jwt-token (auth/generate-enterprise-token
@@ -255,11 +263,23 @@
                                      :from [[:core.users :u]]
                                      :join [[:core.enterprises :e]
                                             [:= :u.enterprise-id :e.id]]
-                                     :where [:= :u.id [:cast user-id :uuid]]})]
+                                     :where [:= :u.id [:cast user-id :uuid]]})
+              ;; Fetch wallet info
+              wallet (db/execute-one! ds
+                                      {:select [:id :balance-cents :pending-cents :updated-at]
+                                       :from [:financial.wallets]
+                                       :where [:and
+                                               [:= :owner-id [:cast user-id :uuid]]
+                                               [:= :owner-type "USER"]]})]
           (if user
             (response-ok {:user (-> user
                                     (update :id str)
-                                    (update :enterprise-id str))})
+                                    (update :enterprise-id str))
+                          :wallet (when wallet
+                                    {:id (str (:id wallet))
+                                     :balance_cents (:balance-cents wallet)
+                                     :pending_cents (:pending-cents wallet)
+                                     :updated_at (:updated-at wallet)})})
             (response-unauthorized "User not found")))
 
         (catch Exception e
@@ -285,7 +305,7 @@
   [{:keys [ds]} request]
   (let [creator-role (keyword (get-in request [:user :role]))
         enterprise-id (:enterprise-id request)
-        {:keys [email password name role phone]} (:body-params request)
+        {:keys [email password name role phone cpf job-title hiring-date]} (:body-params request)
         requested-role (or role "EMPLOYEE")]
     (cond
       (nil? enterprise-id)
@@ -327,6 +347,9 @@
                                             :password-hash password-hash
                                             :name name
                                             :phone phone
+                                            :cpf cpf
+                                            :job-title job-title
+                                            :hiring-date (when hiring-date [:cast hiring-date :date])
                                             :role requested-role
                                             :status "ACTIVE"}]})
               new-user (db/execute-one! ds

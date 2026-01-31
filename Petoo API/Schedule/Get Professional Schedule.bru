@@ -5,9 +5,14 @@ meta {
 }
 
 get {
-  url: {{base_url}}/api/v1/schedule/{{professional_id}}
+  url: {{base_url}}/api/v1/schedule/{{professional_id}}?enterprise-id={{enterprise_id}}&date=2026-01-25
   body: none
   auth: inherit
+}
+
+params:query {
+  enterprise-id: {{enterprise_id}}
+  date: 2026-01-25
 }
 
 settings {
@@ -15,5 +20,12 @@ settings {
 }
 
 docs {
-  Retorna a agenda de um profissional específico
+  Retorna a agenda de um profissional específico.
+  
+  Parâmetros obrigatórios:
+  - enterprise-id: ID da enterprise
+  - date: Data base no formato YYYY-MM-DD
+  
+  Parâmetro opcional:
+  - days: Número de dias a partir da data (default: 7)
 }

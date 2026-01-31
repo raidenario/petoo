@@ -75,7 +75,7 @@
           (if user
             (let [token (auth/generate-token
                          (:id user)
-                         (:tenant-id user)
+                         (:enterprise-id user)
                          (:phone user)
                          (:role user))]
               (response-ok
@@ -85,7 +85,7 @@
                        :phone (:phone user)
                        :name (:name user)
                        :role (:role user)
-                       :tenant-id (:tenant-id user)}}))
+                       :enterprise-id (:enterprise-id user)}}))
 
             (response-unauthorized "Invalid phone or password")))
 
@@ -106,3 +106,26 @@
     (response-ok {:user user})
     (response-unauthorized "Not authenticated")))
 
+
+;; ============================================
+;; TEMPORARY: DEV PLATFORM LOGIN
+;; ============================================
+
+(defn dev-login-platform
+  "DEPRECATED/TEMPORARY: Retorna um token PLATFORM sem conferir senha.
+   Apenas para uso em desenvolvimento."
+  [_request]
+  (try
+    (let [token (auth/generate-enterprise-token
+                 "00000000-0000-4000-a000-000000000000" ;; ID fixo da migration 011
+                 nil                                  ;; Platform Admin não tem enterprise-id
+                 "petoo@petoo.com.br"
+                 "PLATFORM")]
+      (response-ok
+       {:token token
+        :user {:id "00000000-0000-4000-a000-000000000000"
+               :email "petoo@petoo.com.br"
+               :name "PETOO Platform Admin"
+               :role "PLATFORM"}}))
+    (catch Exception e
+      (response-error (.getMessage e)))))

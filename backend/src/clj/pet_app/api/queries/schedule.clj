@@ -8,12 +8,12 @@
   [{:keys [ds]} request]
   (let [professional-id (get-in request [:path-params :professional-id])
         params (:query-params request)
-        tenant-id (get params "tenant-id")
+        enterprise-id (or (get params "enterprise-id") (get params "enterprise_id"))
         date (get params "date")
         days (Integer/parseInt (or (get params "days") "7"))]
-    (if (or (not tenant-id) (not date))
+    (if (or (not enterprise-id) (not date))
       {:status 400
-       :body {:error "tenant-id and date are required"}}
+       :body {:error "enterprise-id and date are required"}}
       (try
         (let [appointments (db/execute! ds
                                         {:select [[:a.id :id]
@@ -27,7 +27,7 @@
                                          :left-join [[:core.pets :p] [:= :a.pet-id :p.id]
                                                      [:core.services :s] [:= :a.service-id :s.id]]
                                          :where [:and
-                                                 [:= :a.tenant-id [:cast tenant-id :uuid]]
+                                                 [:= :a.enterprise-id [:cast enterprise-id :uuid]]
                                                  [:= :a.professional-id [:cast professional-id :uuid]]
                                                  [:>= :a.start-time [:cast date :date]]
                                                  [:< :a.start-time [:+ [:cast date :date] [:raw (str days " days")]]]

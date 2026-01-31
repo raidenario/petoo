@@ -180,10 +180,4 @@
                {:avatar-url avatar-url}
                [:= :id [:cast user-id :uuid]]))))
 
-(defn update-tenant-logo! [ds tenant-id logo-url]
-  (let [tenant (find-by-id ds :core.tenants [:cast tenant-id :uuid])
-        current-config (or (:theme-config tenant) {})
-        new-config (assoc current-config :logo logo-url)]
-    (update! ds :core.tenants
-             {:theme-config [:cast (json/write-str new-config) :jsonb]}
-             [:= :id [:cast tenant-id :uuid]])))
+

@@ -12,6 +12,19 @@
   "Create a new pet."
   [{:keys [ds]} request]
   (let [body (:body-params request)
+        user (:user request)
+
+        ;; Authorization Check:
+        ;; IF user is CUSTOMER, they can only create pets for themselves.
+        ;; IF user is unknown (shouldn't happen due to middleware), block.
+        ;; Enterprise users (MASTER/ADMIN/EMPLOYEE) can create for anyone.
+        _ (when (and (= (:role user) "CUSTOMER")
+                     (not= (str (:id user)) (str (:user-id body))))
+            (throw (ex-info "Forbidden: Customers can only create pets for themselves"
+                            {:type :forbidden
+                             :user-id (:id user)
+                             :target-id (:user-id body)})))
+
         validation (schemas/validate schemas/CreatePet body)]
     (if-not (:valid? validation)
       (h/response-bad-request (:errors validation))

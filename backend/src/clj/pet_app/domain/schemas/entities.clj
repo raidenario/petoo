@@ -11,13 +11,19 @@
    [:id {:optional true} common/uuid-string]
    [:name common/non-empty-string]
    [:slug [:re #"^[a-z0-9-]+$"]]
+   [:cnpj {:optional true} common/cnpj]
+   [:service-type {:optional true} enums/ServiceType]
+   [:description {:optional true} :string]
+   [:availability {:optional true} [:map-of :keyword :any]]
    [:theme-config {:optional true} [:map-of :keyword :any]]
    [:commission-rate {:optional true} [:double {:min 0 :max 1}]]
    [:contact-email {:optional true} common/email]
    [:contact-phone {:optional true} common/phone]
    [:address {:optional true} :string]
+   [:logo-url {:optional true} :string]
    [:latitude {:optional true} :double]
    [:longitude {:optional true} :double]
+   [:registration-date {:optional true} common/timestamp]
    [:status {:optional true} [:enum "ACTIVE" "INACTIVE"]]])
 
 ;; Alias para backward compatibility
@@ -36,6 +42,7 @@
    [:avatar-url {:optional true} :string]
    [:latitude {:optional true} :double]
    [:longitude {:optional true} :double]
+   [:registration-date {:optional true} common/timestamp]
    [:status {:optional true} [:enum "ACTIVE" "INACTIVE"]]])
 
 ;; ============================================
@@ -59,10 +66,14 @@
    [:id {:optional true} common/uuid-string]
    [:enterprise-id {:optional true} common/uuid-string]
    [:email common/email]
+   [:cpf {:optional true} common/cpf]
    [:password {:optional true} [:string {:min 8}]]
    [:name common/non-empty-string]
+   [:job-title {:optional true} [:string {:max 100}]]
    [:phone {:optional true} common/phone]
+   [:hiring-date {:optional true} common/timestamp]
    [:role {:optional true} enums/EnterpriseUserRole]
+   [:employee-status {:optional true} enums/EmployeeStatus]
    [:avatar-url {:optional true} :string]
    [:status {:optional true} [:enum "ACTIVE" "INACTIVE"]]])
 

@@ -19,16 +19,54 @@
 
       (try
         (let [pets (db/execute! ds
-                                {:select [:id :name :species :breed :size
-                                          :birth-date :weight-kg :photo-url
-                                          :notes :medical-notes :status
-                                          :created-at :updated-at]
-                                 :from :core.pets
-                                 :where [:= :client-id [:cast client-id :uuid]]
-                                 :order-by [[:name :asc]]})]
+                                {:select [:p.id :p.name :p.species :p.breed :p.size
+                                          :p.birth-date :p.weight-kg :p.photo-url
+                                          :p.notes :p.medical-notes :p.status
+                                          :p.current-appointment-id :p.care-started-at
+                                          :p.created-at :p.updated-at]
+                                 :from [[:core.pets :p]]
+                                 :where [:= :p.client-id [:cast client-id :uuid]]
+                                 :order-by [[:p.name :asc]]})
+
+              ;; For pets IN_CARE, fetch appointment details
+              pets-with-care (mapv
+                              (fn [pet]
+                                (let [base-pet {:id (str (:id pet))
+                                                :name (:name pet)
+                                                :species (:species pet)
+                                                :breed (:breed pet)
+                                                :size (:size pet)
+                                                :birth_date (:birth-date pet)
+                                                :weight_kg (:weight-kg pet)
+                                                :photo_url (:photo-url pet)
+                                                :status (:status pet)
+                                                :created_at (:created-at pet)}]
+                                  (if (and (= (:status pet) "IN_CARE")
+                                           (:current-appointment-id pet))
+                                    ;; Fetch appointment details
+                                    (let [appt (db/execute-one! ds
+                                                                {:select [:a.id :a.start-time :a.end-time
+                                                                          [:e.name :enterprise-name]
+                                                                          [:s.name :service-name]]
+                                                                 :from [[:core.appointments :a]]
+                                                                 :left-join [[:core.enterprises :e] [:= :a.enterprise-id :e.id]
+                                                                             [:core.services :s] [:= :a.service-id :s.id]]
+                                                                 :where [:= :a.id (:current-appointment-id pet)]})]
+                                      (assoc base-pet
+                                             :care_started_at (:care-started-at pet)
+                                             :current_appointment
+                                             (when appt
+                                               {:id (str (:id appt))
+                                                :enterprise_name (:enterprise-name appt)
+                                                :service_name (:service-name appt)
+                                                :start_time (:start-time appt)
+                                                :end_time (:end-time appt)})))
+                                    ;; Not in care, no appointment info needed
+                                    (assoc base-pet :current_appointment nil))))
+                              pets)]
           {:status 200
-           :body {:pets (mapv #(update % :id str) pets)
-                  :count (count pets)}})
+           :body {:pets pets-with-care
+                  :count (count pets-with-care)}})
         (catch Exception e
           (log/error e "Failed to list client pets")
           {:status 500

@@ -42,34 +42,42 @@
     </encoder>
   </appender>
 
-  <!-- Worker Loggers - Separate files -->
+  <!-- Worker Loggers - Separate files by namespace -->
   <logger name="pet-app.workers.availability" level="DEBUG" additivity="true">
-    <appender-ref ref="AVAILABILITY_FILE"/>
+    <appender-ref ref="AVAILABILITY_FILE" />
   </logger>
 
   <logger name="pet-app.workers.financial" level="DEBUG" additivity="true">
-    <appender-ref ref="FINANCIAL_FILE"/>
+    <appender-ref ref="FINANCIAL_FILE" />
   </logger>
 
   <logger name="pet-app.workers.projector" level="DEBUG" additivity="true">
-    <appender-ref ref="PROJECTOR_FILE"/>
+    <appender-ref ref="PROJECTOR_FILE" />
+  </logger>
+
+  <!-- Base worker log goes to all -->
+  <logger name="pet-app.workers.base" level="DEBUG" additivity="true">
+    <appender-ref ref="AVAILABILITY_FILE" />
+    <appender-ref ref="FINANCIAL_FILE" />
+    <appender-ref ref="PROJECTOR_FILE" />
   </logger>
 
   <!-- API Loggers -->
   <logger name="pet-app.api" level="DEBUG" additivity="true">
-    <appender-ref ref="API_FILE"/>
+    <appender-ref ref="API_FILE" />
   </logger>
 
   <!-- Petoo Application Logging -->
-  <logger name="pet-app" level="DEBUG"/>
-  
+  <logger name="pet-app" level="DEBUG" />
+
   <!-- Suppress noisy libraries -->
-  <logger name="org.apache.kafka" level="WARN"/>
-  <logger name="org.apache.zookeeper" level="WARN"/>
-  <logger name="com.zaxxer.hikari" level="INFO"/>
-  <logger name="org.eclipse.jetty" level="INFO"/>
+  <logger name="org.apache.kafka" level="WARN" />
+  <logger name="org.apache.zookeeper" level="WARN" />
+  <logger name="com.zaxxer.hikari" level="INFO" />
+  <logger name="org.eclipse.jetty" level="INFO" />
+  <logger name="migratus" level="INFO" />
 
   <root level="INFO">
-    <appender-ref ref="STDOUT"/>
+    <appender-ref ref="STDOUT" />
   </root>
 </configuration>

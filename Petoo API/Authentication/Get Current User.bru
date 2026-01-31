@@ -5,13 +5,9 @@ meta {
 }
 
 get {
-  url: {{base_url}}/api/v1/auth/me
+  url: {{base_url}}/api/v1/users/me
   body: none
-  auth: bearer
-}
-
-auth:bearer {
-  token: {{auth_token}}
+  auth: inherit
 }
 
 settings {
@@ -19,5 +15,46 @@ settings {
 }
 
 docs {
-  Retorna informações do usuário autenticado. Requer token JWT válido.
+  # Who Am I (Unified)
+  
+  Retorna informações do usuário autenticado, seja ele um **Client** (Dono de pet) ou **Enterprise User** (Funcionário).
+  
+  **URL:** `/api/v1/users/me`
+  **Authentication:** Bearer token (JWT)
+  
+  ## O que ele retorna?
+  O retorno muda dinamicamente baseado no `type` do token:
+  
+  ### 1. Se for Client (Pet Owner)
+  ```json
+  {
+    "type": "client",
+    "user": {
+      "id": "uuid",
+      "name": "Maria Santos",
+      "email": "maria@email.com",
+      "phone": "+5511999998888",
+      "avatar-url": null,
+      "created-at": "2026-01-31T10:00:00Z"
+    }
+  }
+  ```
+  
+  ### 2. Se for Enterprise User (Staff/Vet)
+  ```json
+  {
+    "type": "enterprise",
+    "user": {
+      "id": "uuid",
+      "name": "Dr. João",
+      "email": "joao@vet.com",
+      "role": "ADMIN",
+      "enterprise": {
+        "id": "uuid",
+        "name": "Pet Shop ABC",
+        "slug": "petshop-abc"
+      }
+    }
+  }
+  ```
 }

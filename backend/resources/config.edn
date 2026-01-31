@@ -41,7 +41,16 @@
   :slot-conflict "slot.conflict"
   :payment-requested "payment.requested"
   :payment-success "payment.success"
-  :payment-failed "payment.failed"}
+  :payment-failed "payment.failed"
+  :wallet-deposit-requested "wallet.deposit.requested"
+  :wallet-deposit-completed "wallet.deposit.completed"
+  :wallet-deposit-failed "wallet.deposit.failed"
+  :wallet-payment-requested "wallet.payment.requested"
+  :wallet-payment-completed "wallet.payment.completed"
+  :wallet-payment-failed "wallet.payment.failed"}
+
+ :features
+ {:enable-dev-endpoints #or [#env ENABLE_DEV_ENDPOINTS true]}
 
  :migratus
  {:store :database

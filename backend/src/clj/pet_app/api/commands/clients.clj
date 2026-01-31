@@ -77,13 +77,13 @@
 
           ;; Publicar evento
           (when kafka-producer
-            (kafka/publish-event! kafka-producer
-                                  (:pet-events topics)
-                                  pet-id
-                                  {:event-type "PetCreated"
-                                   :pet-id pet-id
-                                   :client-id client-id
-                                   :name (:name body)}))
+            (kafka/send-event! kafka-producer
+                               (:pet-events topics)
+                               pet-id
+                               {:event-type "PetCreated"
+                                :pet-id pet-id
+                                :client-id client-id
+                                :name (:name body)}))
 
           (log/info "Pet created:" pet-id "for client:" client-id)
 
@@ -136,13 +136,13 @@
 
               ;; Publicar evento
               (when kafka-producer
-                (kafka/publish-event! kafka-producer
-                                      (:pet-events topics)
-                                      pet-id
-                                      {:event-type "PetUpdated"
-                                       :pet-id pet-id
-                                       :client-id client-id
-                                       :updated-fields (keys update-data)}))
+                (kafka/send-event! kafka-producer
+                                   (:pet-events topics)
+                                   pet-id
+                                   {:event-type "PetUpdated"
+                                    :pet-id pet-id
+                                    :client-id client-id
+                                    :updated-fields (keys update-data)}))
 
               (log/info "Pet updated:" pet-id)
 
@@ -171,12 +171,12 @@
           (if (pos? (count result))
             (do
               (when kafka-producer
-                (kafka/publish-event! kafka-producer
-                                      (:pet-events topics)
-                                      pet-id
-                                      {:event-type "PetDeleted"
-                                       :pet-id pet-id
-                                       :client-id client-id}))
+                (kafka/send-event! kafka-producer
+                                   (:pet-events topics)
+                                   pet-id
+                                   {:event-type "PetDeleted"
+                                    :pet-id pet-id
+                                    :client-id client-id}))
               (log/info "Pet deleted:" pet-id)
               (response-ok {:message "Pet deleted successfully"}))
             (response-not-found "Pet not found or you don't have access")))
@@ -230,12 +230,32 @@
           (if-not pet
             (response-bad-request "Pet not found or doesn't belong to you")
 
-            ;; Buscar duração do serviço
+            ;; Buscar duração e preço do serviço
             (let [service (db/execute-one! ds
-                                           {:select [:duration-minutes]
+                                           {:select [:duration-minutes :price-cents]
                                             :from :core.services
                                             :where [:= :id [:cast (:service-id body) :uuid]]})
+                  _ (when-not service (throw (ex-info "Service not found" {})))
+
                   duration-minutes (or (:duration-minutes service) 30)
+                  price-cents (:price-cents service)
+                  payment-method (or (:payment_method body) "PIX")
+
+                  ;; Se for pagamento via carteira, verificar saldo
+                  _ (when (= payment-method "WALLET_BALANCE")
+                      (let [wallet (db/execute-one! ds
+                                                    {:select [:balance-cents]
+                                                     :from [:financial.wallets]
+                                                     :where [:and
+                                                             [:= :owner-id [:cast client-id :uuid]]
+                                                             [:= :owner-type "USER"]]})
+                            balance (or (:balance-cents wallet) 0)]
+                        (when (< balance price-cents)
+                          (throw (ex-info "Insufficient balance"
+                                          {:type :insufficient-balance
+                                           :balance balance
+                                           :required price-cents})))))
+
                   appointment-id (str (UUID/randomUUID))
 
                   appointment-data {:id [:cast appointment-id :uuid]
@@ -246,9 +266,10 @@
                                     :professional-id (when (:professional-id body)
                                                        [:cast (:professional-id body) :uuid])
                                     :start-time (:start-time body)
-                                    ;; Calculate end time from service duration
-                                    :end-time [:+ [:cast (:start-time body) :timestamptz]
-                                               [:* duration-minutes [:interval "1 minute"]]]
+                                    :end-time (if (:end-time body)
+                                                (:end-time body)
+                                                [:+ [:cast (:start-time body) :timestamptz]
+                                                 [:* duration-minutes [:interval "1 minute"]]])
                                     :status "PENDING"
                                     :notes (:notes body)}
 
@@ -256,29 +277,39 @@
                                      {:insert-into :core.appointments
                                       :values [(into {} (filter (fn [[_ v]] (some? v)) appointment-data))]})]
 
-              ;; Publicar evento
+              ;; Publicar evento com info de pagamento
               (when kafka-producer
-                (kafka/publish-event! kafka-producer
-                                      (:appointment-events topics)
-                                      appointment-id
-                                      {:event-type "AppointmentCreated"
-                                       :appointment-id appointment-id
-                                       :client-id client-id
-                                       :enterprise-id (:enterprise-id body)
-                                       :service-id (:service-id body)}))
+                (kafka/send-event! kafka-producer
+                                   (:appointment-events topics)
+                                   appointment-id
+                                   {:event-type "AppointmentCreated"
+                                    :appointment-id appointment-id
+                                    :client-id client-id
+                                    :enterprise-id (:enterprise-id body)
+                                    :service-id (:service-id body)
+                                    :price-cents price-cents
+                                    :payment-method payment-method}))
 
               (log/info "Appointment created:" appointment-id
                         "for client:" client-id
-                        "at enterprise:" (:enterprise-id body))
+                        "payment:" payment-method)
 
               (response-created
                {:appointment {:id appointment-id
                               :status "PENDING"
+                              :payment_method payment-method
+                              :price_cents price-cents
                               :start-time (:start-time body)}}))))
 
         (catch Exception e
           (log/error e "Failed to create appointment")
-          (response-error "Failed to create appointment"))))))
+          (if (= :insufficient-balance (:type (ex-data e)))
+            {:status 400
+             :body {:error "Insufficient balance"
+                    :balance_cents (:balance (ex-data e))
+                    :required_cents (:required (ex-data e))
+                    :message "Your wallet balance is insufficient for this service"}}
+            (response-error "Failed to create appointment")))))))
 
 (defn cancel-appointment
   "Cancel an existing appointment."
@@ -299,13 +330,13 @@
           (if (pos? (count result))
             (do
               (when kafka-producer
-                (kafka/publish-event! kafka-producer
-                                      (:appointment-events topics)
-                                      appointment-id
-                                      {:event-type "AppointmentCancelled"
-                                       :appointment-id appointment-id
-                                       :client-id client-id
-                                       :cancelled-by "client"}))
+                (kafka/send-event! kafka-producer
+                                   (:appointment-events topics)
+                                   appointment-id
+                                   {:event-type "AppointmentCancelled"
+                                    :appointment-id appointment-id
+                                    :client-id client-id
+                                    :cancelled-by "client"}))
               (log/info "Appointment cancelled:" appointment-id)
               (response-ok {:message "Appointment cancelled successfully"}))
             (response-not-found "Appointment not found or cannot be cancelled")))

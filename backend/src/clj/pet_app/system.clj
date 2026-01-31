@@ -17,7 +17,8 @@
             [ring.adapter.jetty :as jetty]
             [pet-app.api.routes :as routes]
             [pet-app.infra.kafka :as kafka]
-            [pet-app.workers.manager :as workers])
+            [pet-app.workers.manager :as workers]
+            [pet-app.workers.scheduler :as scheduler])
   (:import [com.zaxxer.hikari HikariDataSource HikariConfig]))
 
 
@@ -113,6 +114,35 @@
     (workers/stop-all!)))
 
 
+;; ============================================
+;; Pet Care Scheduler
+;; ============================================
+
+(defmethod ig/init-key :pet-app/scheduler [_ {:keys [config db kafka]}]
+  (let [kafka-config (:kafka config)
+        topics (:topics config)
+        producer (:producer kafka)
+        ;; Run every 30 seconds
+        interval-ms 30000]
+    (log/info "Starting pet care scheduler...")
+    (try
+      (let [scheduler-handle (scheduler/start-scheduler!
+                              {:ds db
+                               :kafka-producer producer
+                               :topics topics
+                               :interval-ms interval-ms})]
+        (log/info "✓ Pet care scheduler started (interval:" interval-ms "ms)")
+        scheduler-handle)
+      (catch Exception e
+        (log/warn "⚠ Scheduler initialization failed (non-fatal):" (.getMessage e))
+        nil))))
+
+(defmethod ig/halt-key! :pet-app/scheduler [_ scheduler-handle]
+  (when scheduler-handle
+    (log/info "Stopping pet care scheduler...")
+    (scheduler/stop-scheduler! scheduler-handle)))
+
+
 (defmethod ig/init-key :pet-app/router [_ {:keys [db kafka config]}]
   (log/info "Initializing router...")
   (routes/router {:db db :kafka kafka :config config}))
@@ -148,6 +178,10 @@
    :pet-app/workers {:config (ig/ref :pet-app/config)
                      :db (ig/ref :pet-app/db)
                      :kafka (ig/ref :pet-app/kafka)}
+
+   :pet-app/scheduler {:config (ig/ref :pet-app/config)
+                       :db (ig/ref :pet-app/db)
+                       :kafka (ig/ref :pet-app/kafka)}
 
    :pet-app/router {:db (ig/ref :pet-app/db)
                     :kafka (ig/ref :pet-app/kafka)

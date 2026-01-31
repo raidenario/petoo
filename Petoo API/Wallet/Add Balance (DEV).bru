@@ -1,0 +1,56 @@
+meta {
+  name: Add Balance (DEV)
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{base_url}}/api/v1/wallet/dev/add-balance
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "user_id": "{{user_id}}",
+    "amount_cents": 100000
+  }
+}
+
+docs {
+  # Add Balance (DEV ONLY)
+  
+  **⚠️ DEVELOPMENT ONLY ENDPOINT**
+  
+  Manually adds balance to a user's wallet without going through the payment gateway.
+  This endpoint is only available when `ENABLE_DEV_ENDPOINTS=true` in the configuration.
+  
+  **Authentication:** None required (DEV endpoint)
+  
+  **Body:**
+  ```json
+  {
+    "user_id": "uuid-of-user",
+    "amount_cents": 100000  // R$ 1000.00
+  }
+  ```
+  
+  **Response:**
+  ```json
+  {
+    "user_id": "uuid",
+    "new_balance": 100000
+  }
+  ```
+  
+  **Use Case:** 
+  Perfect for testing the wallet payment flow without needing to integrate
+  with a real payment gateway:
+  
+  1. Add balance to user wallet with this endpoint
+  2. Check balance via `GET /api/v1/auth/enterprise/me`
+  3. Create appointment with `payment_method: "WALLET_BALANCE"`
+  4. Verify balance was deducted
+  
+  **Note:** This creates a wallet if it doesn't exist yet.
+}

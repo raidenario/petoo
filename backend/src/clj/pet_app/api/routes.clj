@@ -16,10 +16,13 @@
             [pet-app.api.queries :as queries]
             [pet-app.api.queries.client-queries :as client-queries]
             [pet-app.api.queries.enterprise-queries :as enterprise-queries]
+            [pet-app.api.queries.pet-queries :as pet-queries]
             [pet-app.api.auth :as auth]
             [pet-app.api.auth.otp-auth :as otp-auth]
             [pet-app.api.auth.enterprise-auth :as enterprise-auth]
-            [pet-app.api.middleware :as middleware]))
+            [pet-app.api.middleware :as middleware]
+            [pet-app.api.commands.wallet-commands :as wallet-commands]
+            [pet-app.api.queries.wallet-queries :as wallet-queries]))
 
 ;; ============================================
 ;; Health & Utility Handlers
@@ -107,9 +110,9 @@
       {:get {:summary "Get professional schedule"
              :handler (partial queries/get-professional-schedule query-deps)}}]
 
-     ["/tenants/:slug"
-      {:get {:summary "Get tenant by slug (whitelabel config)"
-             :handler (partial queries/get-tenant-by-slug query-deps)}}]
+     ["/enterprises/:slug"
+      {:get {:summary "Get enterprise by slug (whitelabel config)"
+             :handler (partial queries/get-enterprise-by-slug query-deps)}}]
 
      ["/services"
       {:get {:summary "List services"
@@ -154,6 +157,9 @@
         ["/login"
          {:post {:summary "Login and get JWT token (legacy)"
                  :handler (partial auth/login {:ds db})}}]
+        ["/dev-platform-login"
+         {:get {:summary "TEMPORARY: Login as PLATFORM without password"
+                :handler auth/dev-login-platform}}]
         ["/me"
          {:get {:summary "Get current user info (legacy)"
                 :handler (-> (fn [request]
@@ -191,7 +197,10 @@
                   :handler (partial enterprise-auth/login {:ds db})}}]
          ["/register"
           {:post {:summary "Register new enterprise with master user"
-                  :handler (partial enterprise-auth/register-enterprise {:ds db})}}]
+                  :handler (-> (partial enterprise-auth/register-enterprise {:ds db})
+                               middleware/require-platform-admin
+                               middleware/require-authentication
+                               middleware/wrap-authentication)}}]
          ["/me"
           {:get {:summary "Get current enterprise user info"
                  :handler (-> (partial enterprise-auth/get-current-user {:ds db})
@@ -206,8 +215,55 @@
                                middleware/wrap-authentication)}}]]]
 
        ;; ============================================
-       ;; Client Routes (for pet owners)
+       ;; Wallet Routes
        ;; ============================================
+       ["/wallet"
+        ["/balance"
+         {:get {:summary "Get current user's wallet balance"
+                :handler (-> (partial wallet-queries/get-balance {:db db})
+                             middleware/require-authentication
+                             middleware/wrap-authentication)}}]
+        ["/transactions"
+         {:get {:summary "Get user transaction history"
+                :handler (-> (partial wallet-queries/get-transactions {:db db})
+                             middleware/require-authentication
+                             middleware/wrap-authentication)}}]
+        ["/deposit"
+         {:post {:summary "Request a wallet deposit"
+                 :handler (-> (partial wallet-commands/deposit-funds {:db db :kafka kafka :config config})
+                              middleware/require-authentication
+                              middleware/wrap-authentication)}}]
+        ["/dev/add-balance"
+         {:post {:summary "DEV ONLY: Manually add balance"
+                 :handler (partial wallet-commands/add-balance-dev {:db db :config config})}}]]
+
+       ["/enterprise/:enterprise-id/wallet"
+        {:get {:summary "Get enterprise wallet balance (Admin only)"
+               :handler (-> (partial wallet-queries/get-enterprise-wallet {:db db})
+                            middleware/require-authentication
+                            middleware/wrap-authentication)}}]
+
+       ;; ============================================
+       ;; User Pets (authenticated users)
+       ;; ============================================
+
+       ;; ============================================
+       ;; User Pets (authenticated users)
+       ;; ============================================
+       ["/users/me/pets"
+        {:get {:summary "List authenticated user's pets with status"
+               :handler (-> (partial pet-queries/list-user-pets {:db db})
+                            middleware/require-authentication
+                            middleware/wrap-authentication)}}]
+
+       ["/pets/:pet-id"
+        {:get {:summary "Get pet details"
+               :handler (-> (partial pet-queries/get-pet-by-id {:db db})
+                            middleware/require-authentication
+                            middleware/wrap-authentication)}}]
+
+       ;; ============================================
+       ;; Client Routes (for pet owners)
        ["/client"
         ;; Client's pets
         ["/pets"
@@ -280,6 +336,7 @@
                             middleware/wrap-authentication)}
          :post {:summary "Create new appointment"
                 :handler (-> (partial commands/create-appointment cmd-deps)
+                             (middleware/require-enterprise-role #{:MASTER :ADMIN :EMPLOYEE})
                              middleware/require-authentication
                              middleware/wrap-authentication)}}]
 
@@ -292,7 +349,14 @@
         {:post {:summary "Create new user (registration)"
                 :handler (partial commands/create-user cmd-deps)}}]
 
-       ;; Pets - POST only (protected)
+       ;; Who Am I - Unified endpoint for verifying identity
+       ["/users/me"
+        {:get {:summary "Get current user info (Client or Enterprise)"
+               :handler (-> (partial queries/get-current-user query-deps)
+                            middleware/require-authentication
+                            middleware/wrap-authentication)}}]
+
+       ;; Pets - POST only
        ["/pets"
         {:post {:summary "Create new pet"
                 :handler (-> (partial commands/create-pet cmd-deps)
@@ -302,6 +366,7 @@
        ["/pets/:id/photo"
         {:post {:summary "Upload pet photo"
                 :handler (-> (partial commands/update-pet-photo cmd-deps)
+                             (middleware/require-enterprise-role #{:MASTER :ADMIN :EMPLOYEE})
                              middleware/require-authentication
                              middleware/wrap-authentication)}}]
 
@@ -311,6 +376,7 @@
                :handler (partial queries/list-services query-deps)}
          :post {:summary "Create new service"
                 :handler (-> (partial commands/create-service cmd-deps)
+                             middleware/require-master-or-admin
                              middleware/require-authentication
                              middleware/wrap-authentication)}}]
 
@@ -320,12 +386,14 @@
                :handler (partial queries/list-professionals query-deps)}
          :post {:summary "Create new professional"
                 :handler (-> (partial commands/create-professional cmd-deps)
+                             middleware/require-master-or-admin
                              middleware/require-authentication
                              middleware/wrap-authentication)}}]
 
        ["/professionals/:id/avatar"
         {:post {:summary "Upload professional avatar"
                 :handler (-> (partial commands/update-professional-avatar cmd-deps)
+                             middleware/require-master-or-admin
                              middleware/require-authentication
                              middleware/wrap-authentication)}}]
 
@@ -334,18 +402,26 @@
         {:get {:summary "Get professional schedule"
                :handler (partial queries/get-professional-schedule query-deps)}}]
 
-       ;; Tenants - GET by slug, POST to create
-       ["/tenants"
-        {:post {:summary "Create new tenant"
-                :handler (partial commands/create-tenant cmd-deps)}}]
+       ;; Enterprises - GET by slug, POST to create (PLATFORM ONLY)
+       ["/enterprises"
+        {:get {:summary "List all active enterprises (public)"
+               :handler (partial enterprise-queries/list-all-enterprises {:db db})}
+         :post {:summary "Create new enterprise"
+                :handler (-> (partial commands/create-enterprise cmd-deps)
+                             middleware/require-platform-admin
+                             middleware/require-authentication
+                             middleware/wrap-authentication)}}]
 
-       ["/tenants/:id/logo"
-        {:post {:summary "Upload tenant logo"
-                :handler (partial commands/update-tenant-logo cmd-deps)}}]
+       ["/enterprises/:id/logo"
+        {:post {:summary "Upload enterprise logo"
+                :handler (-> (partial commands/update-enterprise-logo cmd-deps)
+                             middleware/require-master-or-admin
+                             middleware/require-authentication
+                             middleware/wrap-authentication)}}]
 
-       ["/tenants/:slug"
-        {:get {:summary "Get tenant by slug (whitelabel config)"
-               :handler (partial queries/get-tenant-by-slug query-deps)}}]]]
+       ["/enterprises/:slug"
+        {:get {:summary "Get enterprise by slug with details (public)"
+               :handler (partial enterprise-queries/get-enterprise-by-slug {:db db})}}]]]
 
      {:data {:coercion malli-coercion/coercion
              :muuntaja m/instance
