@@ -65,7 +65,7 @@
         payload (:payload value)
         {:keys [appointment-id professional-id start-time end-time]} payload]
 
-    (log/info "Processing appointment.created:" appointment-id)
+    (log/infof "[IN: appointment.created] Processing appointment-id: %s" appointment-id)
 
     ;; Check for conflicts
     (let [conflict (check-slot-conflict ds professional-id start-time end-time appointment-id)]
@@ -73,14 +73,16 @@
       (if conflict
         ;; Slot is occupied - emit conflict event
         (do
-          (log/warn "Slot conflict detected for appointment:" appointment-id
-                    "conflicts with:" (:id conflict))
+          (log/warnf "[AVAILABILITY] Slot conflict detected for appointment: %s (conflicts with: %s)"
+                     appointment-id (:id conflict))
 
           ;; Update status to CANCELLED
+          (log/infof "[DB: core.appointments] Setting status to CANCELLED for: %s" appointment-id)
           (update-appointment-status! ds appointment-id "CANCELLED")
 
           ;; Emit slot.conflict event
           (when kafka-producer
+            (log/infof "[OUT: slot.conflict] Emitting conflict for: %s" appointment-id)
             (let [conflict-event (kafka/make-event
                                   :slot.conflict
                                   {:appointment-id appointment-id
@@ -96,13 +98,15 @@
 
         ;; Slot is free - reserve it
         (do
-          (log/info "Slot available, reserving for appointment:" appointment-id)
+          (log/infof "[AVAILABILITY] Slot available, reserving for: %s" appointment-id)
 
           ;; Update status to CONFIRMED
+          (log/infof "[DB: core.appointments] Setting status to CONFIRMED for: %s" appointment-id)
           (update-appointment-status! ds appointment-id "CONFIRMED")
 
           ;; Emit slot.reserved event
           (when kafka-producer
+            (log/infof "[OUT: slot.reserved] Emitting reservation for: %s" appointment-id)
             (let [reserved-event (kafka/make-event
                                   :slot.reserved
                                   (merge payload
@@ -112,7 +116,7 @@
                                  appointment-id
                                  reserved-event)))
 
-          (log/info "Slot reserved successfully for:" appointment-id))))))
+          (log/infof "[AVAILABILITY] Slot reserved successfully for: %s" appointment-id))))))
 
 ;; ============================================
 ;; Event Router

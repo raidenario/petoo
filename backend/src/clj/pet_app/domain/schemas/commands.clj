@@ -1,7 +1,8 @@
 (ns pet-app.domain.schemas.commands
   "Schemas for API requests (commands)."
   (:require [pet-app.domain.schemas.common :as common]
-            [pet-app.domain.schemas.enums :as enums]))
+            [pet-app.domain.schemas.enums :as enums]
+            [pet-app.domain.schemas.entities :as entities]))
 
 (def CreateAppointment
   "Schema for POST /api/v1/appointments"

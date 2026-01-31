@@ -14,8 +14,8 @@
                   #or [#env DB_PORT "5432"]
                   "/"
                   #or [#env DB_NAME "petoo_db"]]
-  :user "petoo"
-  :password "petoo_secret"
+  :user #or [#env DB_USER "petoo"]
+  :password #or [#env DB_PASSWORD "petoo_secret"]
   :maximumPoolSize 10
   :minimumIdle 2
   :connectionTimeout 30000}
@@ -46,6 +46,7 @@
  :migratus
  {:store :database
   :migration-dir "migrations"
+  :command-separator ";"
   :init-in-transaction? false
   :migration-table-name "schema_migrations"
   :db {:jdbcUrl #join ["jdbc:postgresql://"

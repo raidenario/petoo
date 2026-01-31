@@ -35,5 +35,12 @@ settings {
 }
 
 docs {
-  Cria um novo agendamento. Retorna 202 Accepted. Use variáveis {{user_id}}, {{pet_id}}, {{professional_id}}, {{service_id}}
+  Cria um novo agendamento e aguarda confirmação dos workers.
+  
+  Respostas possíveis:
+  - 201 CONFIRMED: Agendamento confirmado com sucesso
+  - 409 CONFLICT: Horário já ocupado (slot conflict)
+  - 202 TIMEOUT: Processamento demorou, verificar status depois
+  
+  Use variáveis: {{user_id}}, {{pet_id}}, {{professional_id}}, {{service_id}}
 }

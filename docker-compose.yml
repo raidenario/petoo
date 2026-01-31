@@ -17,7 +17,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./backend/resources/db/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U petoo -d petoo_db"]
+      test: [ "CMD-SHELL", "pg_isready -U petoo -d petoo_db" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -39,7 +39,7 @@ services:
       - zookeeper_data:/var/lib/zookeeper/data
       - zookeeper_log:/var/lib/zookeeper/log
     healthcheck:
-      test: ["CMD", "nc", "-z", "localhost", "2181"]
+      test: [ "CMD", "nc", "-z", "localhost", "2181" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -72,7 +72,7 @@ services:
     volumes:
       - kafka_data:/var/lib/kafka/data
     healthcheck:
-      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      test: [ "CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092" ]
       interval: 10s
       timeout: 10s
       retries: 5
@@ -120,10 +120,16 @@ services:
       DB_USER: petoo
       DB_PASSWORD: petoo_secret
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      # JWT Secret - CHANGE THIS IN PRODUCTION!
+      JWT_SECRET: ${JWT_SECRET:-petoo-super-secret-key-change-in-production}
+      # Environment (production in Docker)
+      ENV: production
+      # JVM options
+      JAVA_OPTS: "-Xms256m -Xmx512m -XX:+UseG1GC"
     volumes:
       - api_uploads:/app/uploads
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      test: [ "CMD", "curl", "-f", "http://localhost:3000/health" ]
       interval: 30s
       timeout: 10s
       start_period: 60s
@@ -142,4 +148,5 @@ volumes:
   zookeeper_log:
   kafka_data:
   api_uploads:
+
 

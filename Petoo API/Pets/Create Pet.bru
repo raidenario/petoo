@@ -20,7 +20,6 @@ auth:bearer {
 
 body:json {
   {
-    "tenant-id": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
     "user-id": "{{user_id}}",
     "name": "Rex",
     "species": "DOG",
@@ -28,7 +27,21 @@ body:json {
     "size": "LARGE",
     "birth-date": "2020-05-15",
     "weight-kg": 25.5,
-    "notes": "Muito brincalhão e amigável"
+    "notes": {
+      "sedentary": false,
+      "walk-times": "2x ao dia, manhã e noite",
+      "alimentation": "Ração premium para raças grandes, 3x ao dia",
+      "castrated": true,
+      "objects": "Bolinha azul, corda de brincar",
+      "others": "Muito brincalhão e amigável"
+    },
+    "medical-notes": {
+      "mastigation": "fast",
+      "bowel-movement-frequency": "2x ao dia",
+      "vaccines": "V10, antirrábica, todas em dia",
+      "patology": false,
+      "patology-description": ""
+    }
   }
 }
 

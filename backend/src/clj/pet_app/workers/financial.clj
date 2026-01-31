@@ -135,8 +135,8 @@
         payload (:payload value)
         {:keys [appointment-id tenant-id price-cents]} payload]
 
-    (log/info "Processing slot.reserved for appointment:" appointment-id
-              "amount:" price-cents "cents")
+    (log/infof "[IN: slot.reserved] Processing for appointment: %s (amount: %d cents)"
+               appointment-id price-cents)
 
     (try
       ;; Get wallets
@@ -157,9 +157,10 @@
         (if (:success payment-result)
           ;; Payment successful
           (do
-            (log/info "Payment successful for transaction:" tx-id)
+            (log/infof "[FINANCIAL] Payment successful for transaction: %s" tx-id)
 
             ;; Update transaction
+            (log/infof "[DB: financial.transactions] Marking TX as PAID: %s" tx-id)
             (update-transaction-status! ds tx-id "PAID"
                                         :external-id (:external-id payment-result))
 
@@ -173,6 +174,7 @@
                                                                 tenant-amount)]
 
               ;; Ledger entry for tenant (CREDIT)
+              (log/infof "[DB: financial.ledger_entries] Creating CREDIT entry for tenant wallet: %s" (:id tenant-wallet))
               (create-ledger-entry! ds
                                     {:transaction-id tx-id
                                      :wallet-id (:id tenant-wallet)
@@ -186,6 +188,7 @@
                 (let [updated-platform (update-wallet-balance! ds
                                                                (:id platform-wallet)
                                                                platform-fee)]
+                  (log/infof "[DB: financial.ledger_entries] Creating FEE entry for platform wallet: %s" (:id platform-wallet))
                   (create-ledger-entry! ds
                                         {:transaction-id tx-id
                                          :wallet-id (:id platform-wallet)
@@ -203,6 +206,7 @@
 
               ;; Emit payment.success
               (when kafka-producer
+                (log/infof "[OUT: payment.success] Emitting success for: %s" appointment-id)
                 (kafka/send-event! kafka-producer
                                    (:payment-success topics)
                                    appointment-id
@@ -213,7 +217,7 @@
                                                       :tenant-amount tenant-amount
                                                       :platform-fee platform-fee})))
 
-              (log/info "Payment processed successfully:" tx-id)))
+              (log/infof "[FINANCIAL] Payment processed successfully: %s" tx-id)))
 
           ;; Payment failed
           (do

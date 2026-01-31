@@ -3,7 +3,10 @@
   (:require [pet-app.domain.schemas.common :as common]
             [pet-app.domain.schemas.enums :as enums]))
 
-(def Tenant
+;; ============================================
+;; Enterprise (antiga Tenant)
+;; ============================================
+(def Enterprise
   [:map
    [:id {:optional true} common/uuid-string]
    [:name common/non-empty-string]
@@ -12,18 +15,59 @@
    [:commission-rate {:optional true} [:double {:min 0 :max 1}]]
    [:contact-email {:optional true} common/email]
    [:contact-phone {:optional true} common/phone]
+   [:address {:optional true} :string]
+   [:latitude {:optional true} :double]
+   [:longitude {:optional true} :double]
    [:status {:optional true} [:enum "ACTIVE" "INACTIVE"]]])
 
-(def User
+;; Alias para backward compatibility
+(def Tenant Enterprise)
+
+;; ============================================
+;; Client (usuário final - dono de pets)
+;; Autenticação via Phone + OTP
+;; ============================================
+(def Client
   [:map
    [:id {:optional true} common/uuid-string]
+   [:phone common/phone]
+   [:name {:optional true} common/non-empty-string]
+   [:email {:optional true} common/email]
+   [:avatar-url {:optional true} :string]
+   [:latitude {:optional true} :double]
+   [:longitude {:optional true} :double]
+   [:status {:optional true} [:enum "ACTIVE" "INACTIVE"]]])
+
+;; ============================================
+;; OTP Token (One-Time Password)
+;; ============================================
+(def OTPToken
+  [:map
+   [:id {:optional true} common/uuid-string]
+   [:phone common/phone]
+   [:token [:string {:min 6 :max 6}]]
+   [:expires-at inst?]
+   [:attempts {:optional true} [:int {:min 0 :max 5}]]
+   [:verified {:optional true} :boolean]])
+
+;; ============================================
+;; EnterpriseUser (funcionários da Enterprise)
+;; Autenticação via Email + Senha
+;; ============================================
+(def EnterpriseUser
+  [:map
+   [:id {:optional true} common/uuid-string]
+   [:enterprise-id {:optional true} common/uuid-string]
    [:email common/email]
    [:password {:optional true} [:string {:min 8}]]
    [:name common/non-empty-string]
    [:phone {:optional true} common/phone]
-   [:role {:optional true} enums/UserRole]
+   [:role {:optional true} enums/EnterpriseUserRole]
    [:avatar-url {:optional true} :string]
    [:status {:optional true} [:enum "ACTIVE" "INACTIVE"]]])
+
+;; Alias para backward compatibility
+(def User EnterpriseUser)
 
 (def PetNotes
   [:map
@@ -45,7 +89,8 @@
 (def Pet
   [:map
    [:id {:optional true} common/uuid-string]
-   [:user-id common/uuid-string]
+   [:client-id {:optional true} common/uuid-string]  ;; Owner (Client)
+   [:user-id {:optional true} common/uuid-string]    ;; Legacy support
    [:name common/non-empty-string]
    [:species {:optional true} enums/PetSpecies]
    [:breed {:optional true} [:string {:max 100}]]
@@ -59,8 +104,8 @@
 (def Professional
   [:map
    [:id {:optional true} common/uuid-string]
-   [:tenant-id common/uuid-string]
-   [:user-id common/uuid-string]
+   [:enterprise-id common/uuid-string]  ;; Enterprise this professional belongs to
+   [:user-id {:optional true} common/uuid-string]
    [:name common/non-empty-string]
    [:specialty {:optional true} common/non-empty-string]
    [:availability {:optional true} [:map-of :keyword :any]]
@@ -69,7 +114,7 @@
 (def Service
   [:map
    [:id {:optional true} common/uuid-string]
-   [:tenant-id common/uuid-string]
+   [:enterprise-id common/uuid-string]  ;; Enterprise offering this service
    [:name common/non-empty-string]
    [:description {:optional true} :string]
    [:category {:optional true} common/non-empty-string]

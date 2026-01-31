@@ -1,0 +1,43 @@
+# Git
+.git
+.gitignore
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.cursor/
+
+# Build artifacts
+target/
+.cpcache/
+
+# Logs
+*.log
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test files
+test/
+
+# Development files
+dev/
+
+# Docker files (no need to copy these)
+Dockerfile*
+docker-compose*.yml
+
+# Documentation
+*.md
+docs/
+
+# Local uploads
+uploads/
+
+# Temporary files
+*.tmp
+*.swp
+*~

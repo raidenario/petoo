@@ -19,11 +19,11 @@
     (let [headers (:headers request)
           ;; Ring/Jetty normalizes headers to lowercase, but check multiple variations
           auth-header (or (get headers "authorization")
-                         (get headers "Authorization")
-                         (some (fn [[k v]]
-                                 (when (= (str/lower-case k) "authorization")
-                                   v))
-                               headers))
+                          (get headers "Authorization")
+                          (some (fn [[k v]]
+                                  (when (= (str/lower-case k) "authorization")
+                                    v))
+                                headers))
           token (when auth-header
                   (let [header-str (str auth-header)]
                     (when-let [match (re-find #"(?i)^Bearer\s+(.+)$" header-str)]
@@ -34,20 +34,20 @@
                         (catch Exception e
                           (log/warn "Error extracting user info from token:" (.getMessage e))
                           nil)))]
-      
+
       ;; Debug logging
       (when auth-header
         (log/debug "Authorization header found, token present:" (boolean token)))
       (when (and token (not user-info))
         (log/warn "Token validation failed - token length:" (count token)))
-      
+
       (if (and token (not user-info))
         ;; Token provided but invalid
         (do
           (log/warn "Invalid token provided")
           {:status 401
            :body {:error "Invalid or expired token"}})
-        
+
         ;; Valid token or no token - continue
         (handler (assoc request :user user-info))))))
 
@@ -59,7 +59,7 @@
   (fn [request]
     (let [headers (:headers request)
           auth-header (or (get headers "authorization")
-                         (get headers "Authorization"))]
+                          (get headers "Authorization"))]
       (if (:user request)
         (handler request)
         (do
@@ -78,12 +78,119 @@
    Returns 403 if user doesn't have required role."
   [handler allowed-roles]
   (fn [request]
-    (let [user-role (:role (:user request))]
+    (let [user-role (keyword (:role (:user request)))]
       (if (contains? allowed-roles user-role)
         (handler request)
-        (response/response
-         {:status 403
-          :body {:error "Insufficient permissions"
-                 :required-roles (vec allowed-roles)
-                 :user-role user-role}})))))
+        {:status 403
+         :body {:error "Insufficient permissions"
+                :required-roles (vec allowed-roles)
+                :user-role user-role}}))))
 
+;; ============================================
+;; Enterprise Isolation Middleware
+;; ============================================
+
+(defn wrap-enterprise-isolation
+  "Middleware que injeta enterprise-id nas queries.
+   
+   Apenas para rotas de Enterprise Users.
+   Garante que usuários só acessem dados de sua Enterprise.
+   
+   Adiciona :enterprise-id ao request se usuário for do tipo 'enterprise'."
+  [handler]
+  (fn [request]
+    (let [user (:user request)]
+      (if (= (:type user) "enterprise")
+        (handler (assoc request :enterprise-id (:enterprise-id user)))
+        (handler request)))))
+
+;; ============================================
+;; Enterprise Role Authorization
+;; ============================================
+
+(defn require-enterprise-role
+  "Middleware que verifica role específica para Enterprise Users.
+   
+   Requer que o usuário:
+   1. Seja do tipo 'enterprise'
+   2. Tenha uma das roles permitidas
+   
+   Args:
+     allowed-roles - Set de roles permitidos (ex: #{:MASTER :ADMIN})
+   
+   Returns 403 se condições não forem atendidas."
+  [handler allowed-roles]
+  (fn [request]
+    (let [user (:user request)
+          user-type (:type user)
+          user-role (keyword (:role user))]
+      (cond
+        ;; Não é usuário enterprise
+        (not= user-type "enterprise")
+        {:status 403
+         :body {:error "This endpoint is for enterprise users only"
+                :user-type user-type}}
+
+        ;; Não tem role permitida
+        (not (contains? allowed-roles user-role))
+        {:status 403
+         :body {:error "Insufficient permissions"
+                :required-roles (vec allowed-roles)
+                :user-role user-role}}
+
+        ;; Autorizado!
+        :else
+        (handler request)))))
+
+(defn require-master-or-admin
+  "Convenience middleware: requer role MASTER ou ADMIN."
+  [handler]
+  (require-enterprise-role handler #{:MASTER :ADMIN}))
+
+(defn require-master
+  "Convenience middleware: requer role MASTER."
+  [handler]
+  (require-enterprise-role handler #{:MASTER}))
+
+;; ============================================
+;; Client Authorization
+;; ============================================
+
+(defn require-client-auth
+  "Middleware que requer autenticação de Client.
+   
+   Verifica se o token é do tipo 'client'.
+   
+   Adiciona :client-id ao request para facilitar queries."
+  [handler]
+  (fn [request]
+    (let [user (:user request)
+          user-type (:type user)]
+      (if (= user-type "client")
+        (handler (assoc request :client-id (:client-id user)))
+        {:status 403
+         :body {:error "This endpoint is for clients only"
+                :user-type user-type}}))))
+
+;; ============================================
+;; Combined Authorization
+;; ============================================
+
+(defn require-client-or-enterprise
+  "Middleware que permite acesso para Clients ou Enterprise Users.
+   
+   Útil para endpoints compartilhados (ex: ver detalhes de um pet)."
+  [handler]
+  (fn [request]
+    (let [user (:user request)
+          user-type (:type user)]
+      (if (contains? #{"client" "enterprise"} user-type)
+        (handler (cond-> request
+                   (= user-type "client")
+                   (assoc :client-id (:client-id user))
+
+                   (= user-type "enterprise")
+                   (assoc :enterprise-id (:enterprise-id user))))
+        {:status 403
+         :body {:error "Authentication required (client or enterprise)"
+                :user-type user-type}}))))

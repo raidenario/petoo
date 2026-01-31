@@ -36,6 +36,10 @@
                                                   [:p.name :pet-name]
                                                   [:p.species :pet-species]
                                                   [:pr.name :professional-name]
+                                                  [:u.avatar-url :user-avatar-url]
+                                                  [:p.photo-url :pet-photo-url]
+                                                  [:p.notes :pet-notes]
+                                                  [:p.medical-notes :pet-medical-notes]
                                                   [:s.name :service-name]
                                                   [:s.price-cents :price-cents]]
                                          :from [[:core.appointments :a]]
@@ -54,9 +58,13 @@
                                :end-time (str (:end-time row))
                                :notes (:notes row)
                                :user {:name (:user-name row)
-                                      :email (:user-email row)}
+                                      :email (:user-email row)
+                                      :avatar-url (:user-avatar-url row)}
                                :pet {:name (:pet-name row)
-                                     :species (:pet-species row)}
+                                     :species (:pet-species row)
+                                     :photo-url (:pet-photo-url row)
+                                     :notes (:pet-notes row)
+                                     :medical-notes (:pet-medical-notes row)}
                                :professional {:name (:professional-name row)}
                                :service {:name (:service-name row)
                                          :price-cents (:price-cents row)}})
@@ -88,10 +96,14 @@
                                               [:u.name :user-name]
                                               [:u.email :user-email]
                                               [:u.phone :user-phone]
+                                              [:u.avatar-url :user-avatar-url]
                                               [:p.id :pet-id]
                                               [:p.name :pet-name]
                                               [:p.species :pet-species]
                                               [:p.breed :pet-breed]
+                                              [:p.photo-url :pet-photo-url]
+                                              [:p.notes :pet-notes]
+                                              [:p.medical-notes :pet-medical-notes]
                                               [:pr.id :professional-id]
                                               [:pr.name :professional-name]
                                               [:pr.specialty :professional-specialty]
@@ -117,11 +129,15 @@
                   :user {:id (str (:user-id result))
                          :name (:user-name result)
                          :email (:user-email result)
-                         :phone (:user-phone result)}
+                         :phone (:user-phone result)
+                         :avatar-url (:user-avatar-url result)}
                   :pet {:id (str (:pet-id result))
                         :name (:pet-name result)
                         :species (:pet-species result)
-                        :breed (:pet-breed result)}
+                        :breed (:pet-breed result)
+                        :photo-url (:pet-photo-url result)
+                        :notes (:pet-notes result)
+                        :medical-notes (:pet-medical-notes result)}
                   :professional {:id (str (:professional-id result))
                                  :name (:professional-name result)
                                  :specialty (:professional-specialty result)}

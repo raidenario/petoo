@@ -6,7 +6,8 @@
    - Polling loop
    - Error handling and retry logic"
   (:require [pet-app.infra.kafka :as kafka]
-            [clojure.tools.logging :as log]))
+            [clojure.tools.logging :as log]
+            [clojure.string :as str]))
 
 ;; ============================================
 ;; Event Processing
@@ -22,12 +23,17 @@
    Returns:
      {:success true} or {:success false :error <exception>}"
   [handler record]
-  (try
-    (handler record)
-    {:success true}
-    (catch Exception e
-      (log/error e "Error processing record:" record)
-      {:success false :error e})))
+  (let [topic (:topic record)
+        partition (:partition record)
+        offset (:offset record)]
+    (try
+      (handler record)
+      (log/debugf "[%s:%d@%d] Processed record" topic partition offset)
+      {:success true}
+      (catch Exception e
+        (log/error e (format "[%s:%d@%d] Error processing record: %s"
+                             topic partition offset (pr-str (:value record))))
+        {:success false :error e}))))
 
 ;; ============================================
 ;; Polling Loop
@@ -38,11 +44,13 @@
   [consumer handler poll-timeout-ms]
   (let [records (kafka/poll-events consumer poll-timeout-ms)]
     (when (seq records)
-      (log/debug "Received" (count records) "records")
-      (doseq [record records]
-        (process-record handler record))
-      ;; Commit after processing batch
-      (kafka/commit-sync! consumer))
+      (let [cnt (count records)
+            topics (distinct (map :topic records))]
+        (log/infof "Received %d records from topics: %s" cnt (str/join ", " topics))
+        (doseq [record records]
+          (process-record handler record))
+        ;; Commit after processing batch
+        (kafka/commit-sync! consumer)))
     (count records)))
 
 (defn start-consumer-loop

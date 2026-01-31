@@ -24,18 +24,23 @@
                              [:a.start-time :start-time]
                              [:a.end-time :end-time]
                              [:a.status :status]
-                             [:a.notes :notes]
+                             [:a.notes :appointment-notes]
                              [:a.transaction-id :transaction-id]
                              [:t.name :tenant-name]
                              [:t.slug :tenant-slug]
+                             [:t.theme-config :tenant-theme]
                              [:u.id :user-id]
                              [:u.name :user-name]
                              [:u.email :user-email]
                              [:u.phone :user-phone]
+                             [:u.avatar-url :user-avatar-url]
                              [:p.id :pet-id]
                              [:p.name :pet-name]
                              [:p.species :pet-species]
                              [:p.breed :pet-breed]
+                             [:p.photo-url :pet-photo-url]
+                             [:p.notes :pet-notes]
+                             [:p.medical-notes :pet-medical-notes]
                              [:pr.id :professional-id]
                              [:pr.name :professional-name]
                              [:s.id :service-id]
@@ -57,18 +62,23 @@
                  :startTime (str (:start-time data))
                  :endTime (str (:end-time data))
                  :status (:status data)
-                 :notes (:notes data)}
+                 :notes (:appointment-notes data)}
    :tenant {:id (str (:tenant-id data))
             :name (:tenant-name data)
-            :slug (:tenant-slug data)}
+            :slug (:tenant-slug data)
+            :logo (get-in (:tenant-theme data) [:logo])}
    :user {:id (str (:user-id data))
           :name (:user-name data)
           :email (:user-email data)
-          :phone (:user-phone data)}
+          :phone (:user-phone data)
+          :avatarUrl (:user-avatar-url data)}
    :pet {:id (str (:pet-id data))
          :name (:pet-name data)
          :species (:pet-species data)
-         :breed (:pet-breed data)}
+         :breed (:pet-breed data)
+         :photoUrl (:pet-photo-url data)
+         :notes (:pet-notes data)
+         :medicalNotes (:pet-medical-notes data)}
    :professional {:id (str (:professional-id data))
                   :name (:professional-name data)}
    :service {:id (str (:service-id data))
@@ -93,6 +103,7 @@
             json-data (build-appointment-json data tx-info)]
 
         ;; Upsert into read model
+        (log/infof "[DB: read_model.appointments_view] Upserting appointment: %s" appointment-id)
         (db/execute-one! ds
                          {:insert-into :read-model.appointments-view
                           :values [{:id [:cast appointment-id :uuid]
@@ -194,16 +205,19 @@
 
 
 (defn handle-event
-  "Route event to appropriate projection handler."
+  "Route event to appropriate projector."
   [{:keys [value] :as event}]
-  (let [event-type (:event-type value)]
+  (let [event-type (:event-type value)
+        payload (:payload value)
+        appointment-id (or (:appointment-id payload) (:id payload))]
+    (log/infof "[IN: %s] Projecting data for appointment: %s" event-type appointment-id)
     (case event-type
       "appointment.created" (handle-appointment-created event)
       "slot.reserved" (handle-slot-reserved event)
       "slot.conflict" (handle-slot-conflict event)
       "payment.success" (handle-payment-success event)
       "payment.failed" (handle-payment-failed event)
-      (log/debug "Ignoring event type:" event-type))))
+      (log/warnf "[PROJECTOR] Unknown event type: %s" event-type))))
 
 ;; ============================================
 ;; Worker Startup

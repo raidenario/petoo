@@ -45,7 +45,7 @@
 (def LoginRequest
   "Schema for POST /api/v1/auth/login"
   [:map
-   [:email [:re #"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"]]
+   [:phone [:re #"^\+?[1-9]\d{1,14}$"]]
    [:password [:string {:min 1}]]])
 
 ;; ============================================
@@ -57,37 +57,38 @@
    
    Flow:
    1. Validate request body
-   2. Find user by email
+   2. Find user by phone
    3. Verify password
    4. Generate JWT token
    5. Return token and user info"
   [{:keys [ds]} request]
   (let [body (:body-params request)
         validation (schemas/validate LoginRequest body)]
-    
+
     (if-not (:valid? validation)
       (response-bad-request (:errors validation))
-      
+
       (try
-        (let [{:keys [email password]} body
-              user (auth/authenticate-user ds email password)]
-          
+        (let [{:keys [phone password]} body
+              user (auth/authenticate-user-by-phone ds phone password)]
+
           (if user
             (let [token (auth/generate-token
                          (:id user)
                          (:tenant-id user)
-                         (:email user)
+                         (:phone user)
                          (:role user))]
               (response-ok
                {:token token
                 :user {:id (:id user)
                        :email (:email user)
+                       :phone (:phone user)
                        :name (:name user)
                        :role (:role user)
                        :tenant-id (:tenant-id user)}}))
-            
-            (response-unauthorized "Invalid email or password")))
-        
+
+            (response-unauthorized "Invalid phone or password")))
+
         (catch Exception e
           (log/error e "Login failed")
           (response-error (.getMessage e)))))))

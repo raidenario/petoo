@@ -20,4 +20,16 @@ vars:pre-request {
 
 docs {
   Collection completa para testar a API do Petoo Backend
+  
+  📝 Atualizações recentes (Jan 2026):
+  - ✅ Pets agora aceitam notas estruturadas (notes + medical-notes)
+  - ✅ Appointments retornam resposta síncrona (201/409/202)
+  - ✅ Upload de imagens (pets, professionals, tenants)
+  - ✅ Workers com logging detalhado ([IN], [OUT], [DB])
+  
+  🔧 Para usar:
+  1. Rode as migrations: ./run-migrations.sh
+  2. Inicie o backend: cd backend && clj -M:dev
+  3. Monitor do Kafka: ./kafka-monitor.sh
+  4. Atualize as variáveis de ambiente conforme necessário
 }

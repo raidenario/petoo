@@ -16,8 +16,8 @@ headers {
 
 body:json {
   {
-    "email": "juliano2@email.com",
-    "password": "fera51246"
+    "phone": "+5511999999999",
+    "password": "senha123"
   }
 }
 
@@ -42,5 +42,8 @@ settings {
 }
 
 docs {
-  Autentica um usuário e retorna um token JWT. O token é salvo automaticamente na variável {{auth_token}} após o login bem-sucedido.
+  Autentica um usuário usando TELEFONE e senha. Retorna um token JWT que é salvo automaticamente na variável {{auth_token}}.
+  
+  IMPORTANTE: O login agora usa número de telefone ao invés de e-mail.
+  Formato aceito: +5511999999999 (com código do país)
 }

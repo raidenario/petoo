@@ -73,27 +73,93 @@
 ;; ============================================
 
 (defn generate-token
-  "Generate a JWT token for a user.
+  "Generate a JWT token for a user (legacy - backward compatibility).
    
    Args:
      user-id    - User UUID string
-     tenant-id  - Tenant UUID string
-     email      - User email
+     tenant-id  - Tenant/Enterprise UUID string
+     phone      - User phone number
      role       - User role (CUSTOMER, ADMIN, STAFF)
    
    Returns:
      JWT token string"
-  [user-id tenant-id email role]
+  [user-id tenant-id phone role]
   (let [claims {:user-id user-id
                 :tenant-id tenant-id
-                :email email
+                :enterprise-id tenant-id  ;; Alias for new code
+                :phone phone
                 :role role
+                :type "enterprise"  ;; Default to enterprise for backward compat
                 :exp (token-expiration-time)
                 :iat (Date.)}]
     (try
       (jwt/sign claims jwt-secret {:alg jwt-algorithm})
       (catch Exception e
         (log/error e "Failed to generate JWT token")
+        (throw (ex-info "Token generation failed" {:error (.getMessage e)}))))))
+
+(defn generate-client-token
+  "Generate JWT for a Client (end user - pet owner).
+   
+   Clients authenticate via Phone + OTP.
+   
+   Claims:
+     - client-id: UUID do cliente
+     - phone: telefone do cliente
+     - type: 'client'
+     - exp: expiração
+   
+   Args:
+     client-id - Client UUID string
+     phone     - Client phone number
+   
+   Returns:
+     JWT token string"
+  [client-id phone]
+  (let [claims {:client-id client-id
+                :phone phone
+                :type "client"
+                :exp (token-expiration-time)
+                :iat (Date.)}]
+    (try
+      (jwt/sign claims jwt-secret {:alg jwt-algorithm})
+      (catch Exception e
+        (log/error e "Failed to generate client JWT token")
+        (throw (ex-info "Token generation failed" {:error (.getMessage e)}))))))
+
+(defn generate-enterprise-token
+  "Generate JWT for an Enterprise User (employee of a business).
+   
+   Enterprise users authenticate via Email + Password.
+   
+   Claims:
+     - user-id: UUID do usuário
+     - enterprise-id: UUID da enterprise
+     - email: email do usuário
+     - role: MASTER|ADMIN|EMPLOYEE
+     - type: 'enterprise'
+     - exp: expiração
+   
+   Args:
+     user-id       - User UUID string
+     enterprise-id - Enterprise UUID string
+     email         - User email
+     role          - User role (MASTER, ADMIN, EMPLOYEE)
+   
+   Returns:
+     JWT token string"
+  [user-id enterprise-id email role]
+  (let [claims {:user-id user-id
+                :enterprise-id enterprise-id
+                :email email
+                :role role
+                :type "enterprise"
+                :exp (token-expiration-time)
+                :iat (Date.)}]
+    (try
+      (jwt/sign claims jwt-secret {:alg jwt-algorithm})
+      (catch Exception e
+        (log/error e "Failed to generate enterprise JWT token")
         (throw (ex-info "Token generation failed" {:error (.getMessage e)}))))))
 
 ;; ============================================
@@ -147,7 +213,7 @@
   [ds email password]
   (try
     (let [user (db/execute-one! ds
-                                {:select [:id :tenant-id :email :password-hash :name :role :status]
+                                {:select [:id :tenant-id :email :phone :password-hash :name :role :status]
                                  :from [:core.users]
                                  :where [:and
                                          [:= :email email]
@@ -157,6 +223,32 @@
         (dissoc user :password-hash)))
     (catch Exception e
       (log/error e "Authentication failed for email:" email)
+      nil)))
+
+(defn authenticate-user-by-phone
+  "Authenticate a user by phone number and password.
+   
+   Args:
+     ds       - DataSource
+     phone    - User phone number
+     password - Plain text password
+   
+   Returns:
+     User map with :id, :tenant-id, :phone, :role if authenticated,
+     nil otherwise"
+  [ds phone password]
+  (try
+    (let [user (db/execute-one! ds
+                                {:select [:id :tenant-id :email :phone :password-hash :name :role :status]
+                                 :from [:core.users]
+                                 :where [:and
+                                         [:= :phone phone]
+                                         [:= :status "ACTIVE"]]})]
+      (when (and user
+                 (verify-password password (:password-hash user)))
+        (dissoc user :password-hash)))
+    (catch Exception e
+      (log/error e "Authentication failed for phone:" phone)
       nil)))
 
 (defn get-user-by-id

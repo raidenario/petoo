@@ -12,8 +12,13 @@
             [ring.middleware.multipart-params :refer [wrap-multipart-params]]
             [clojure.tools.logging :as log]
             [pet-app.api.commands :as commands]
+            [pet-app.api.commands.clients :as client-commands]
             [pet-app.api.queries :as queries]
+            [pet-app.api.queries.client-queries :as client-queries]
+            [pet-app.api.queries.enterprise-queries :as enterprise-queries]
             [pet-app.api.auth :as auth]
+            [pet-app.api.auth.otp-auth :as otp-auth]
+            [pet-app.api.auth.enterprise-auth :as enterprise-auth]
             [pet-app.api.middleware :as middleware]))
 
 ;; ============================================
@@ -141,19 +146,134 @@
 
       ;; API v1
       ["/api/v1"
-       ;; Authentication endpoints (public)
+       ;; ============================================
+       ;; Authentication endpoints
+       ;; ============================================
        ["/auth"
+        ;; Legacy login (backward compatibility)
         ["/login"
-         {:post {:summary "Login and get JWT token"
+         {:post {:summary "Login and get JWT token (legacy)"
                  :handler (partial auth/login {:ds db})}}]
         ["/me"
-         {:get {:summary "Get current user info"
+         {:get {:summary "Get current user info (legacy)"
                 :handler (-> (fn [request]
                                (auth/get-current-user request nil))
                              middleware/require-authentication
-                             middleware/wrap-authentication)}}]]
+                             middleware/wrap-authentication)}}]
 
-       ;; Appointments - GET and POST combined (protected)
+        ;; OTP Authentication (Clients - Phone based)
+        ["/otp"
+         ["/request"
+          {:post {:summary "Request OTP for phone authentication"
+                  :handler (partial otp-auth/request-otp {:ds db})}}]
+         ["/verify"
+          {:post {:summary "Verify OTP and get JWT token"
+                  :handler (partial otp-auth/verify-otp {:ds db})}}]]
+
+        ;; Client endpoints (authenticated)
+        ["/client"
+         ["/me"
+          {:get {:summary "Get current client info"
+                 :handler (-> (partial otp-auth/get-current-client {:ds db})
+                              middleware/require-client-auth
+                              middleware/require-authentication
+                              middleware/wrap-authentication)}
+           :put {:summary "Update client profile"
+                 :handler (-> (partial otp-auth/update-client-profile {:ds db})
+                              middleware/require-client-auth
+                              middleware/require-authentication
+                              middleware/wrap-authentication)}}]]
+
+        ;; Enterprise Authentication (Email + Password)
+        ["/enterprise"
+         ["/login"
+          {:post {:summary "Enterprise user login"
+                  :handler (partial enterprise-auth/login {:ds db})}}]
+         ["/register"
+          {:post {:summary "Register new enterprise with master user"
+                  :handler (partial enterprise-auth/register-enterprise {:ds db})}}]
+         ["/me"
+          {:get {:summary "Get current enterprise user info"
+                 :handler (-> (partial enterprise-auth/get-current-user {:ds db})
+                              middleware/require-authentication
+                              middleware/wrap-authentication)}}]
+         ["/users"
+          {:post {:summary "Create new user in enterprise (MASTER/ADMIN only)"
+                  :handler (-> (partial enterprise-auth/create-enterprise-user {:ds db})
+                               middleware/wrap-enterprise-isolation
+                               middleware/require-master-or-admin
+                               middleware/require-authentication
+                               middleware/wrap-authentication)}}]]]
+
+       ;; ============================================
+       ;; Client Routes (for pet owners)
+       ;; ============================================
+       ["/client"
+        ;; Client's pets
+        ["/pets"
+         {:get {:summary "List client's pets"
+                :handler (-> (partial client-queries/list-client-pets {:ds db})
+                             middleware/require-client-auth
+                             middleware/require-authentication
+                             middleware/wrap-authentication)}
+          :post {:summary "Create a new pet"
+                 :handler (-> (partial client-commands/create-pet cmd-deps)
+                              middleware/require-client-auth
+                              middleware/require-authentication
+                              middleware/wrap-authentication)}}]
+        ["/pets/:id"
+         {:get {:summary "Get pet details"
+                :handler (-> (partial client-queries/get-client-pet {:ds db})
+                             middleware/require-client-auth
+                             middleware/require-authentication
+                             middleware/wrap-authentication)}
+          :put {:summary "Update pet"
+                :handler (-> (partial client-commands/update-pet cmd-deps)
+                             middleware/require-client-auth
+                             middleware/require-authentication
+                             middleware/wrap-authentication)}
+          :delete {:summary "Delete pet"
+                   :handler (-> (partial client-commands/delete-pet cmd-deps)
+                                middleware/require-client-auth
+                                middleware/require-authentication
+                                middleware/wrap-authentication)}}]
+
+        ;; Client's appointments
+        ["/appointments"
+         {:get {:summary "List client's appointments"
+                :handler (-> (partial client-queries/list-client-appointments {:ds db})
+                             middleware/require-client-auth
+                             middleware/require-authentication
+                             middleware/wrap-authentication)}
+          :post {:summary "Book an appointment"
+                 :handler (-> (partial client-commands/create-appointment cmd-deps)
+                              middleware/require-client-auth
+                              middleware/require-authentication
+                              middleware/wrap-authentication)}}]
+        ["/appointments/:id/cancel"
+         {:post {:summary "Cancel an appointment"
+                 :handler (-> (partial client-commands/cancel-appointment cmd-deps)
+                              middleware/require-client-auth
+                              middleware/require-authentication
+                              middleware/wrap-authentication)}}]
+
+        ;; Enterprise discovery
+        ["/discover"
+         ["/nearby"
+          {:get {:summary "Find nearby enterprises (by geolocation)"
+                 :handler (-> (partial client-queries/list-nearby-enterprises {:ds db})
+                              middleware/require-client-auth
+                              middleware/require-authentication
+                              middleware/wrap-authentication)}}]]
+
+        ;; View enterprise details (public for discovery)
+        ["/enterprises/:enterprise-id"
+         ["/services"
+          {:get {:summary "List services of an enterprise"
+                 :handler (partial client-queries/get-enterprise-services {:ds db})}}]
+         ["/professionals"
+          {:get {:summary "List professionals of an enterprise"
+                 :handler (partial client-queries/get-enterprise-professionals {:ds db})}}]]]
        ["/appointments"
         {:get {:summary "List appointments"
                :handler (-> (partial queries/list-appointments query-deps)

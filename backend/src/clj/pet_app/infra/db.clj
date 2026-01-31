@@ -4,9 +4,43 @@
    Provides utilities for database operations with the PostgreSQL connection pool."
   (:require [next.jdbc :as jdbc]
             [next.jdbc.result-set :as rs]
+            [next.jdbc.prepare :as prepare]
             [honey.sql :as sql]
             [clojure.tools.logging :as log]
-            [clojure.data.json :as json]))
+            [clojure.data.json :as json])
+  (:import [org.postgresql.util PGobject]))
+
+;; ============================================
+;; JSONB Support for next.jdbc
+;; ============================================
+
+(extend-protocol rs/ReadableColumn
+  PGobject
+  (read-column-by-label [^PGobject v _]
+    (let [type (.getType v)
+          value (.getValue v)]
+      (if (#{"json" "jsonb"} type)
+        (when value (json/read-str value :key-fn keyword))
+        value)))
+  (read-column-by-index [^PGobject v _ _]
+    (let [type (.getType v)
+          value (.getValue v)]
+      (if (#{"json" "jsonb"} type)
+        (when value (json/read-str value :key-fn keyword))
+        value))))
+
+(defn- ->pgobject [v]
+  (doto (PGobject.)
+    (.setType "jsonb")
+    (.setValue (json/write-str v))))
+
+(extend-protocol prepare/SettableParameter
+  clojure.lang.IPersistentMap
+  (set-parameter [m ^java.sql.PreparedStatement s i]
+    (.setObject s i (->pgobject m)))
+  clojure.lang.IPersistentVector
+  (set-parameter [v ^java.sql.PreparedStatement s i]
+    (.setObject s i (->pgobject v))))
 
 ;; ============================================
 ;; Query Options

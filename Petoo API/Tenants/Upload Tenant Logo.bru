@@ -1,0 +1,29 @@
+meta {
+  name: Upload Tenant Logo
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{base_url}}/api/v1/tenants/{{tenant_id}}/logo
+  body: multipartForm
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{auth_token}}
+}
+
+body:multipart-form {
+  file: @file(/path/to/logo.png)
+}
+
+settings {
+  encodeUrl: true
+}
+
+docs {
+  Upload de logo para o tenant. Armazena no campo theme-config.logo.
+  
+  Substitua /path/to/logo.png por uma imagem real do seu sistema.
+}

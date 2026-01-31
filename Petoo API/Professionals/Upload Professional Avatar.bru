@@ -1,0 +1,29 @@
+meta {
+  name: Upload Professional Avatar
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{base_url}}/api/v1/professionals/{{professional_id}}/avatar
+  body: multipartForm
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{auth_token}}
+}
+
+body:multipart-form {
+  file: @file(/path/to/avatar.jpg)
+}
+
+settings {
+  encodeUrl: true
+}
+
+docs {
+  Upload de avatar para o profissional. Atualiza avatar_url do usuário associado.
+  
+  Substitua /path/to/avatar.jpg por uma imagem real do seu sistema.
+}

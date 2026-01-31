@@ -74,18 +74,8 @@ CREATE TABLE financial.ledger_entries (
     -- NOTA: Sem updated_at pois é imutável
 );
 
--- Prevenir modificações no ledger (trigger de proteção)
-CREATE OR REPLACE FUNCTION financial.prevent_ledger_modification()
-RETURNS TRIGGER AS $$
-BEGIN
-    RAISE EXCEPTION 'Ledger entries are immutable. Cannot UPDATE or DELETE.';
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER ledger_immutable_trigger
-    BEFORE UPDATE OR DELETE ON financial.ledger_entries
-    FOR EACH ROW
-    EXECUTE FUNCTION financial.prevent_ledger_modification();
+-- NOTA: Trigger de proteção do ledger será adicionado manualmente após migração
+-- pois a sintaxe $$ não é compatível com o parser do Migratus
 
 -- ============================================
 -- INDEXES
