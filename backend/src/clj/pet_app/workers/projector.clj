@@ -20,15 +20,15 @@
   [ds appointment-id]
   (db/execute-one! ds
                    {:select [[:a.id :appointment-id]
-                             [:a.tenant-id :tenant-id]
+                             [:a.enterprise-id :enterprise-id]
                              [:a.start-time :start-time]
                              [:a.end-time :end-time]
                              [:a.status :status]
                              [:a.notes :appointment-notes]
                              [:a.transaction-id :transaction-id]
-                             [:t.name :tenant-name]
-                             [:t.slug :tenant-slug]
-                             [:t.theme-config :tenant-theme]
+                             [:e.name :enterprise-name]
+                             [:e.slug :enterprise-slug]
+                             [:e.theme-config :enterprise-theme]
                              [:u.id :user-id]
                              [:u.name :user-name]
                              [:u.email :user-email]
@@ -48,7 +48,7 @@
                              [:s.price-cents :service-price-cents]
                              [:s.duration-minutes :service-duration-minutes]]
                     :from [[:core.appointments :a]]
-                    :left-join [[:core.tenants :t] [:= :a.tenant-id :t.id]
+                    :left-join [[:core.enterprises :e] [:= :a.enterprise-id :e.id]
                                 [:core.users :u] [:= :a.user-id :u.id]
                                 [:core.pets :p] [:= :a.pet-id :p.id]
                                 [:core.professionals :pr] [:= :a.professional-id :pr.id]
@@ -63,10 +63,10 @@
                  :endTime (str (:end-time data))
                  :status (:status data)
                  :notes (:appointment-notes data)}
-   :tenant {:id (str (:tenant-id data))
-            :name (:tenant-name data)
-            :slug (:tenant-slug data)
-            :logo (get-in (:tenant-theme data) [:logo])}
+   :enterprise {:id (str (:enterprise-id data))
+                :name (:enterprise-name data)
+                :slug (:enterprise-slug data)
+                :logo (get-in (:enterprise-theme data) [:logo])}
    :user {:id (str (:user-id data))
           :name (:user-name data)
           :email (:user-email data)
@@ -107,7 +107,7 @@
         (db/execute-one! ds
                          {:insert-into :read-model.appointments-view
                           :values [{:id [:cast appointment-id :uuid]
-                                    :tenant-id [:cast (str (:tenant-id data)) :uuid]
+                                    :enterprise-id [:cast (str (:enterprise-id data)) :uuid]
                                     :data [:cast (json/write-str json-data) :jsonb]
                                     :status (:status data)
                                     :start-time (:start-time data)
@@ -126,11 +126,11 @@
 
 (defn update-schedule-slot!
   "Update or create a schedule slot in read_model."
-  [ds {:keys [tenant-id professional-id slot-date slot-time duration-minutes
+  [ds {:keys [enterprise-id professional-id slot-date slot-time duration-minutes
               is-available appointment-id]}]
   (db/execute-one! ds
                    {:insert-into :read-model.schedule-slots-view
-                    :values [{:tenant-id [:cast tenant-id :uuid]
+                    :values [{:enterprise-id [:cast enterprise-id :uuid]
                               :professional-id [:cast professional-id :uuid]
                               :slot-date slot-date
                               :slot-time slot-time
@@ -138,7 +138,7 @@
                               :is-available is-available
                               :appointment-id (when appointment-id [:cast appointment-id :uuid])
                               :updated-at [:now]}]
-                    :on-conflict [:tenant-id :professional-id :slot-date :slot-time]
+                    :on-conflict [:enterprise-id :professional-id :slot-date :slot-time]
                     :do-update-set [:is-available :appointment-id :updated-at]}))
 
 
@@ -156,7 +156,7 @@
   [{:keys [deps value]}]
   (let [{:keys [ds]} deps
         payload (:payload value)
-        {:keys [appointment-id tenant-id professional-id start-time]} payload]
+        {:keys [appointment-id enterprise-id professional-id start-time]} payload]
     (log/info "Projecting slot.reserved:" appointment-id)
 
     ;; Update appointment view with CONFIRMED status
@@ -166,7 +166,7 @@
     (try
       (let [start-instant (java.time.Instant/parse start-time)]
         (update-schedule-slot! ds
-                               {:tenant-id tenant-id
+                               {:enterprise-id enterprise-id
                                 :professional-id professional-id
                                 :slot-date (str (.toLocalDate (.atZone start-instant (java.time.ZoneId/of "America/Sao_Paulo"))))
                                 :slot-time (str (.toLocalTime (.atZone start-instant (java.time.ZoneId/of "America/Sao_Paulo"))))

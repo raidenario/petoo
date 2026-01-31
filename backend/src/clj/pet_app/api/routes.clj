@@ -107,9 +107,9 @@
       {:get {:summary "Get professional schedule"
              :handler (partial queries/get-professional-schedule query-deps)}}]
 
-     ["/tenants/:slug"
-      {:get {:summary "Get tenant by slug (whitelabel config)"
-             :handler (partial queries/get-tenant-by-slug query-deps)}}]
+     ["/enterprises/:slug"
+      {:get {:summary "Get enterprise by slug (whitelabel config)"
+             :handler (partial queries/get-enterprise-by-slug query-deps)}}]
 
      ["/services"
       {:get {:summary "List services"
@@ -154,6 +154,9 @@
         ["/login"
          {:post {:summary "Login and get JWT token (legacy)"
                  :handler (partial auth/login {:ds db})}}]
+        ["/dev-platform-login"
+         {:get {:summary "TEMPORARY: Login as PLATFORM without password"
+                :handler auth/dev-login-platform}}]
         ["/me"
          {:get {:summary "Get current user info (legacy)"
                 :handler (-> (fn [request]
@@ -191,7 +194,10 @@
                   :handler (partial enterprise-auth/login {:ds db})}}]
          ["/register"
           {:post {:summary "Register new enterprise with master user"
-                  :handler (partial enterprise-auth/register-enterprise {:ds db})}}]
+                  :handler (-> (partial enterprise-auth/register-enterprise {:ds db})
+                               middleware/require-platform-admin
+                               middleware/require-authentication
+                               middleware/wrap-authentication)}}]
          ["/me"
           {:get {:summary "Get current enterprise user info"
                  :handler (-> (partial enterprise-auth/get-current-user {:ds db})
@@ -280,6 +286,7 @@
                             middleware/wrap-authentication)}
          :post {:summary "Create new appointment"
                 :handler (-> (partial commands/create-appointment cmd-deps)
+                             (middleware/require-enterprise-role #{:MASTER :ADMIN :EMPLOYEE})
                              middleware/require-authentication
                              middleware/wrap-authentication)}}]
 
@@ -296,12 +303,14 @@
        ["/pets"
         {:post {:summary "Create new pet"
                 :handler (-> (partial commands/create-pet cmd-deps)
+                             (middleware/require-enterprise-role #{:MASTER :ADMIN :EMPLOYEE})
                              middleware/require-authentication
                              middleware/wrap-authentication)}}]
 
        ["/pets/:id/photo"
         {:post {:summary "Upload pet photo"
                 :handler (-> (partial commands/update-pet-photo cmd-deps)
+                             (middleware/require-enterprise-role #{:MASTER :ADMIN :EMPLOYEE})
                              middleware/require-authentication
                              middleware/wrap-authentication)}}]
 
@@ -311,6 +320,7 @@
                :handler (partial queries/list-services query-deps)}
          :post {:summary "Create new service"
                 :handler (-> (partial commands/create-service cmd-deps)
+                             middleware/require-master-or-admin
                              middleware/require-authentication
                              middleware/wrap-authentication)}}]
 
@@ -320,12 +330,14 @@
                :handler (partial queries/list-professionals query-deps)}
          :post {:summary "Create new professional"
                 :handler (-> (partial commands/create-professional cmd-deps)
+                             middleware/require-master-or-admin
                              middleware/require-authentication
                              middleware/wrap-authentication)}}]
 
        ["/professionals/:id/avatar"
         {:post {:summary "Upload professional avatar"
                 :handler (-> (partial commands/update-professional-avatar cmd-deps)
+                             middleware/require-master-or-admin
                              middleware/require-authentication
                              middleware/wrap-authentication)}}]
 
@@ -334,18 +346,24 @@
         {:get {:summary "Get professional schedule"
                :handler (partial queries/get-professional-schedule query-deps)}}]
 
-       ;; Tenants - GET by slug, POST to create
-       ["/tenants"
-        {:post {:summary "Create new tenant"
-                :handler (partial commands/create-tenant cmd-deps)}}]
+       ;; Enterprises - GET by slug, POST to create (PLATFORM ONLY)
+       ["/enterprises"
+        {:post {:summary "Create new enterprise"
+                :handler (-> (partial commands/create-enterprise cmd-deps)
+                             middleware/require-platform-admin
+                             middleware/require-authentication
+                             middleware/wrap-authentication)}}]
 
-       ["/tenants/:id/logo"
-        {:post {:summary "Upload tenant logo"
-                :handler (partial commands/update-tenant-logo cmd-deps)}}]
+       ["/enterprises/:id/logo"
+        {:post {:summary "Upload enterprise logo"
+                :handler (-> (partial commands/update-enterprise-logo cmd-deps)
+                             middleware/require-master-or-admin
+                             middleware/require-authentication
+                             middleware/wrap-authentication)}}]
 
-       ["/tenants/:slug"
-        {:get {:summary "Get tenant by slug (whitelabel config)"
-               :handler (partial queries/get-tenant-by-slug query-deps)}}]]]
+       ["/enterprises/:slug"
+        {:get {:summary "Get enterprise by slug (whitelabel config)"
+               :handler (partial queries/get-enterprise-by-slug query-deps)}}]]]
 
      {:data {:coercion malli-coercion/coercion
              :muuntaja m/instance

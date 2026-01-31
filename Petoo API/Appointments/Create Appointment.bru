@@ -20,7 +20,7 @@ auth:bearer {
 
 body:json {
   {
-    "tenant-id": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+    "enterprise-id": "{{enterprise_id}}",
     "user-id": "{{user_id}}",
     "pet-id": "{{pet_id}}",
     "professional-id": "{{professional_id}}",
@@ -42,5 +42,5 @@ docs {
   - 409 CONFLICT: Horário já ocupado (slot conflict)
   - 202 TIMEOUT: Processamento demorou, verificar status depois
   
-  Use variáveis: {{user_id}}, {{pet_id}}, {{professional_id}}, {{service_id}}
+  Use variáveis: {{enterprise_id}}, {{user_id}}, {{pet_id}}, {{professional_id}}, {{service_id}}
 }

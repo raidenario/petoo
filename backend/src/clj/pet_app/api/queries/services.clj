@@ -4,20 +4,20 @@
             [clojure.tools.logging :as log]))
 
 (defn list-services
-  "List active services for a tenant."
+  "List active services for an enterprise."
   [{:keys [ds]} request]
   (let [params (:query-params request)
-        tenant-id (get params "tenant-id")]
-    (if-not tenant-id
+        enterprise-id (or (get params "enterprise-id") (get params "enterprise_id"))]
+    (if-not enterprise-id
       {:status 400
-       :body {:error "tenant-id is required"}}
+       :body {:error "enterprise-id is required"}}
       (try
         (let [services (db/execute! ds
                                     {:select [:id :name :description :category
                                               :price-cents :duration-minutes]
                                      :from [:core.services]
                                      :where [:and
-                                             [:= :tenant-id [:cast tenant-id :uuid]]
+                                             [:= :enterprise-id [:cast enterprise-id :uuid]]
                                              [:= :active true]]
                                      :order-by [[:category :asc] [:name :asc]]})]
           {:status 200

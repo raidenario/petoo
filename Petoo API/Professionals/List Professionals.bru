@@ -5,13 +5,13 @@ meta {
 }
 
 get {
-  url: {{base_url}}/api/v1/professionals?tenant-id={{tenant_id}}
+  url: {{base_url}}/api/v1/professionals?enterprise-id={{enterprise_id}}
   body: none
   auth: inherit
 }
 
 params:query {
-  tenant-id: {{tenant_id}}
+  enterprise-id: {{enterprise_id}}
 }
 
 settings {
@@ -19,5 +19,5 @@ settings {
 }
 
 docs {
-  Lista todos os profissionais de um tenant
+  Lista todos os profissionais de uma enterprise
 }

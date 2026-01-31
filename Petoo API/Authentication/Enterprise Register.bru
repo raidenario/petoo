@@ -1,0 +1,50 @@
+meta {
+  name: Enterprise Register
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{base_url}}/api/v1/auth/enterprise/register
+  body: json
+  auth: inherit
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "enterprise": {
+      "name": "Meu Pet Shop",
+      "slug": "meu-pet-shop",
+      "contact-email": "contato@meupetshop.com",
+      "logo-url": "https://img.logo.com/logo.png"
+    },
+    "user": {
+      "email": "dono@meupetshop.com",
+      "password": "senha123",
+      "name": "João Proprietário"
+    }
+  }
+}
+
+script:post-response {
+  if (res.getStatus() === 201) {
+      const jsonData = res.getBody();
+      if (jsonData.token) {
+          bru.setEnvVar('auth_token', jsonData.token);
+          bru.setVar('auth_token', jsonData.token);
+      }
+      if (jsonData.enterprise && jsonData.enterprise.id) {
+          bru.setEnvVar('enterprise_id', jsonData.enterprise.id);
+          bru.setVar('enterprise_id', jsonData.enterprise.id);
+      }
+  }
+}
+
+docs {
+  Registra uma nova Enterprise e cria o primeiro usuário com role MASTER.
+  O campo `logo-url` foi adicionado conforme solicitado.
+}

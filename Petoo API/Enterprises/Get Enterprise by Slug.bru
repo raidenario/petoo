@@ -1,0 +1,24 @@
+meta {
+  name: Get Enterprise by Slug
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{base_url}}/api/v1/enterprises/{{enterprise_slug}}
+  body: none
+  auth: inherit
+}
+
+vars:pre-request {
+  enterprise_slug: meu-pet-shop
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
+
+docs {
+  Busca configurações de uma enterprise pelo slug (whitelabel)
+}

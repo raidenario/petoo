@@ -9,11 +9,13 @@
 (defn create-professional
   "Create a new professional."
   [{:keys [ds]} request]
-  (let [body (:body-params request)]
+  (let [body (:body-params request)
+        ;; Support both enterprise-id and tenant-id for backwards compatibility
+        enterprise-id (or (:enterprise-id body) (:tenant-id body))]
     (try
       (let [professional-id (h/uuid)
             professional {:id [:cast professional-id :uuid]
-                          :tenant-id [:cast (:tenant-id body) :uuid]
+                          :enterprise-id [:cast enterprise-id :uuid]
                           :user-id [:cast (:user-id body) :uuid]
                           :name (:name body)
                           :specialty (:specialty body)

@@ -17,21 +17,21 @@
   (:import [java.util UUID]))
 
 
-(defn get-tenant-wallet
-  "Get or create wallet for tenant."
-  [ds tenant-id]
+(defn get-enterprise-wallet
+  "Get or create wallet for enterprise."
+  [ds enterprise-id]
   (let [existing (db/execute-one! ds
                                   {:select [:*]
                                    :from [:financial.wallets]
                                    :where [:and
-                                           [:= :owner-id [:cast tenant-id :uuid]]
-                                           [:= :owner-type "TENANT"]]})]
+                                           [:= :owner-id [:cast enterprise-id :uuid]]
+                                           [:= :owner-type "ENTERPRISE"]]})]
     (or existing
         ;; Create wallet if not exists
         (db/execute-one! ds
                          {:insert-into :financial.wallets
-                          :values [{:owner-id [:cast tenant-id :uuid]
-                                    :owner-type "TENANT"
+                          :values [{:owner-id [:cast enterprise-id :uuid]
+                                    :owner-type "ENTERPRISE"
                                     :balance-cents 0
                                     :pending-cents 0}]
                           :returning [:*]}))))
@@ -117,13 +117,13 @@
 (def PLATFORM_COMMISSION_RATE 0.10) ;; 10%
 
 (defn calculate-split
-  "Calculate payment split between tenant and platform."
+  "Calculate payment split between enterprise and platform."
   [amount-cents commission-rate]
   (let [platform-fee (Math/round (* amount-cents (double commission-rate)))
-        tenant-amount (- amount-cents platform-fee)]
+        enterprise-amount (- amount-cents platform-fee)]
     {:total amount-cents
      :platform-fee platform-fee
-     :tenant-amount tenant-amount}))
+     :enterprise-amount enterprise-amount}))
 
 
 (defn handle-slot-reserved
@@ -133,19 +133,19 @@
   [{:keys [deps value] :as event}]
   (let [{:keys [ds kafka-producer topics]} deps
         payload (:payload value)
-        {:keys [appointment-id tenant-id price-cents]} payload]
+        {:keys [appointment-id enterprise-id price-cents]} payload]
 
     (log/infof "[IN: slot.reserved] Processing for appointment: %s (amount: %d cents)"
                appointment-id price-cents)
 
     (try
       ;; Get wallets
-      (let [tenant-wallet (get-tenant-wallet ds tenant-id)
+      (let [enterprise-wallet (get-enterprise-wallet ds enterprise-id)
             platform-wallet (get-platform-wallet ds)
 
             ;; Create transaction
             transaction (create-transaction! ds
-                                             {:wallet-id (:id tenant-wallet)
+                                             {:wallet-id (:id enterprise-wallet)
                                               :appointment-id appointment-id
                                               :amount-cents price-cents
                                               :payment-method "PIX"})
@@ -165,22 +165,22 @@
                                         :external-id (:external-id payment-result))
 
             ;; Calculate split
-            (let [{:keys [platform-fee tenant-amount]}
+            (let [{:keys [platform-fee enterprise-amount]}
                   (calculate-split price-cents PLATFORM_COMMISSION_RATE)
 
-                  ;; Update tenant wallet and create ledger entry
-                  updated-tenant-wallet (update-wallet-balance! ds
-                                                                (:id tenant-wallet)
-                                                                tenant-amount)]
+                  ;; Update enterprise wallet and create ledger entry
+                  updated-enterprise-wallet (update-wallet-balance! ds
+                                                                    (:id enterprise-wallet)
+                                                                    enterprise-amount)]
 
-              ;; Ledger entry for tenant (CREDIT)
-              (log/infof "[DB: financial.ledger_entries] Creating CREDIT entry for tenant wallet: %s" (:id tenant-wallet))
+              ;; Ledger entry for enterprise (CREDIT)
+              (log/infof "[DB: financial.ledger_entries] Creating CREDIT entry for enterprise wallet: %s" (:id enterprise-wallet))
               (create-ledger-entry! ds
                                     {:transaction-id tx-id
-                                     :wallet-id (:id tenant-wallet)
+                                     :wallet-id (:id enterprise-wallet)
                                      :entry-type "CREDIT"
-                                     :amount-cents tenant-amount
-                                     :balance-after (:balance-cents updated-tenant-wallet)
+                                     :amount-cents enterprise-amount
+                                     :balance-after (:balance-cents updated-enterprise-wallet)
                                      :description (str "Payment for appointment " appointment-id)})
 
               ;; Ledger entry for platform fee (FEE)
@@ -214,7 +214,7 @@
                                                      {:appointment-id appointment-id
                                                       :transaction-id tx-id
                                                       :amount-cents price-cents
-                                                      :tenant-amount tenant-amount
+                                                      :enterprise-amount enterprise-amount
                                                       :platform-fee platform-fee})))
 
               (log/infof "[FINANCIAL] Payment processed successfully: %s" tx-id)))

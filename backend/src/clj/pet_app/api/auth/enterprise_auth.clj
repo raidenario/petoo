@@ -190,6 +190,11 @@
                                                 :slug (:slug enterprise)
                                                 :contact-email (:contact-email enterprise)
                                                 :contact-phone (:contact-phone enterprise)
+                                                :address (:address enterprise)
+                                                :logo-url (:logo-url enterprise)
+                                                :cnpj (:cnpj enterprise)
+                                                :service-type (:service-type enterprise)
+                                                :description (:description enterprise)
                                                 :latitude (:latitude enterprise)
                                                 :longitude (:longitude enterprise)
                                                 :status "ACTIVE"}]})
@@ -203,6 +208,8 @@
                                                 :password-hash password-hash
                                                 :name (:name user)
                                                 :phone (:phone user)
+                                                :cpf (:cpf user)
+                                                :job-title (:job-title user)
                                                 :role "MASTER"
                                                 :status "ACTIVE"}]})
 
@@ -285,7 +292,7 @@
   [{:keys [ds]} request]
   (let [creator-role (keyword (get-in request [:user :role]))
         enterprise-id (:enterprise-id request)
-        {:keys [email password name role phone]} (:body-params request)
+        {:keys [email password name role phone cpf job-title hiring-date]} (:body-params request)
         requested-role (or role "EMPLOYEE")]
     (cond
       (nil? enterprise-id)
@@ -327,6 +334,9 @@
                                             :password-hash password-hash
                                             :name name
                                             :phone phone
+                                            :cpf cpf
+                                            :job-title job-title
+                                            :hiring-date (when hiring-date [:cast hiring-date :date])
                                             :role requested-role
                                             :status "ACTIVE"}]})
               new-user (db/execute-one! ds

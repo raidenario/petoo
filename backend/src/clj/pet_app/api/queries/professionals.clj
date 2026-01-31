@@ -4,19 +4,19 @@
             [clojure.tools.logging :as log]))
 
 (defn list-professionals
-  "List active professionals for a tenant."
+  "List active professionals for an enterprise."
   [{:keys [ds]} request]
   (let [params (:query-params request)
-        tenant-id (get params "tenant-id")]
-    (if-not tenant-id
+        enterprise-id (or (get params "enterprise-id") (get params "enterprise_id"))]
+    (if-not enterprise-id
       {:status 400
-       :body {:error "tenant-id is required"}}
+       :body {:error "enterprise-id is required"}}
       (try
         (let [professionals (db/execute! ds
                                          {:select [:id :name :specialty :availability]
                                           :from [:core.professionals]
                                           :where [:and
-                                                  [:= :tenant-id [:cast tenant-id :uuid]]
+                                                  [:= :enterprise-id [:cast enterprise-id :uuid]]
                                                   [:= :active true]]
                                           :order-by [[:name :asc]]})]
           {:status 200

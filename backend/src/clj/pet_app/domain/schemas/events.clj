@@ -10,7 +10,7 @@
    [:payload
     [:map
      [:appointment-id common/uuid-string]
-     [:tenant-id common/uuid-string]
+     [:enterprise-id common/uuid-string]
      [:user-id common/uuid-string]
      [:pet-id common/uuid-string]
      [:professional-id common/uuid-string]

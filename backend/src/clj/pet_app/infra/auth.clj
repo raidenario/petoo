@@ -213,7 +213,7 @@
   [ds email password]
   (try
     (let [user (db/execute-one! ds
-                                {:select [:id :tenant-id :email :phone :password-hash :name :role :status]
+                                {:select [:id :enterprise-id :email :phone :password-hash :name :role :status]
                                  :from [:core.users]
                                  :where [:and
                                          [:= :email email]
@@ -239,7 +239,7 @@
   [ds phone password]
   (try
     (let [user (db/execute-one! ds
-                                {:select [:id :tenant-id :email :phone :password-hash :name :role :status]
+                                {:select [:id :enterprise-id :email :phone :password-hash :name :role :status]
                                  :from [:core.users]
                                  :where [:and
                                          [:= :phone phone]
@@ -263,7 +263,7 @@
   [ds user-id]
   (try
     (db/execute-one! ds
-                     {:select [:id :tenant-id :email :name :role :status]
+                     {:select [:id :enterprise-id :email :name :role :status]
                       :from [:core.users]
                       :where [:and
                               [:= :id [:cast user-id :uuid]]

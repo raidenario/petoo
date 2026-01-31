@@ -5,7 +5,7 @@
             [pet-app.api.commands.pets :as pets]
             [pet-app.api.commands.services :as services]
             [pet-app.api.commands.professionals :as professionals]
-            [pet-app.api.commands.tenants :as tenants]))
+            [pet-app.api.commands.enterprises :as enterprises]))
 
 ;; Re-export handlers
 (def create-appointment appointments/create-appointment)
@@ -15,5 +15,5 @@
 (def create-service services/create-service)
 (def create-professional professionals/create-professional)
 (def update-professional-avatar professionals/update-professional-avatar)
-(def create-tenant tenants/create-tenant)
-(def update-tenant-logo tenants/update-tenant-logo)
+(def create-enterprise enterprises/create-enterprise)
+(def update-enterprise-logo enterprises/update-enterprise-logo)

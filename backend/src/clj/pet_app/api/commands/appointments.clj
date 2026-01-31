@@ -64,8 +64,11 @@
               end-time (h/calculate-end-time start-time (:duration-minutes service))
               appointment-id (h/uuid)
 
+              ;; Support both enterprise-id and tenant-id for backwards compatibility
+              enterprise-id (or (:enterprise-id body) (:tenant-id body))
+
               appointment {:id [:cast appointment-id :uuid]
-                           :tenant-id [:cast (:tenant-id body) :uuid]
+                           :enterprise-id [:cast enterprise-id :uuid]
                            :user-id [:cast (:user-id body) :uuid]
                            :pet-id [:cast (:pet-id body) :uuid]
                            :professional-id [:cast (:professional-id body) :uuid]
@@ -83,7 +86,7 @@
               event (kafka/make-event
                      :appointment.created
                      {:appointment-id appointment-id
-                      :tenant-id (:tenant-id body)
+                      :enterprise-id enterprise-id
                       :user-id (:user-id body)
                       :pet-id (:pet-id body)
                       :professional-id (:professional-id body)

@@ -5,13 +5,13 @@ meta {
 }
 
 get {
-  url: {{base_url}}/api/v1/services?tenant-id={{tenant_id}}
+  url: {{base_url}}/api/v1/services?enterprise-id={{enterprise_id}}
   body: none
   auth: inherit
 }
 
 params:query {
-  tenant-id: {{tenant_id}}
+  enterprise-id: {{enterprise_id}}
 }
 
 settings {
@@ -19,5 +19,5 @@ settings {
 }
 
 docs {
-  Lista todos os serviços de um tenant
+  Lista todos os serviços de uma enterprise
 }

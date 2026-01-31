@@ -1,0 +1,19 @@
+meta {
+  name: Get Current Client
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{base_url}}/api/v1/auth/client/me
+  body: none
+  auth: inherit
+}
+
+headers {
+  Authorization: Bearer {{auth_token}}
+}
+
+docs {
+  Retorna os dados do Client autenticado (tipo 'client' no JWT).
+}

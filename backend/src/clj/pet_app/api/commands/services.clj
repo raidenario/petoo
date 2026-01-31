@@ -7,11 +7,13 @@
 (defn create-service
   "Create a new service."
   [{:keys [ds]} request]
-  (let [body (:body-params request)]
+  (let [body (:body-params request)
+        ;; Support both enterprise-id and tenant-id for backwards compatibility
+        enterprise-id (or (:enterprise-id body) (:tenant-id body))]
     (try
       (let [service-id (h/uuid)
             service {:id [:cast service-id :uuid]
-                     :tenant-id [:cast (:tenant-id body) :uuid]
+                     :enterprise-id [:cast enterprise-id :uuid]
                      :name (:name body)
                      :description (:description body)
                      :category (:category body)
