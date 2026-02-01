@@ -1,0 +1,385 @@
+﻿ÔòöÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòù
+Ôòæ   Petoo Backend - Container Start     Ôòæ
+ÔòÜÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòØ
+ÔÅ│ Waiting for PostgreSQL at postgres:5432...
+Ô£à PostgreSQL is available!
+ÔÅ│ Waiting for Kafka at kafka:29092...
+Ô£à Kafka is available!
+­ƒöä Running database migrations...
+05:35:11.103 [main] INFO  pet-app.infra.migrations - Running database migrations...
+05:35:11.124 [main] INFO  migratus.core - Starting migrations
+05:35:11.558 [main] INFO  migratus.core - Running up for [1 2 3 4 5 6 7 8 9 11 12 13 14 15 16]
+05:35:11.558 [main] INFO  migratus.core - Up 1-core-schema
+05:35:11.565 [main] INFO  migratus.database - Connection is  {:connection #object[org.postgresql.jdbc.PgConnection 0x771a7d53 org.postgresql.jdbc.PgConnection@771a7d53]} Config is {:store :database, :migration-dir migrations, :command-separator ;, :init-in-transaction? false, :migration-table-name schema_migrations, :db {:jdbcUrl jdbc:postgresql://postgres:5432/petoo_db, :user petoo, :password p<censored>}}
+05:35:11.605 [main] ERROR migratus.migration.sql - failed to execute command:
+ 
+
+
+
+
+
+
+
+CREATE TABLE core.tenants (
+id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+name VARCHAR(255) NOT NULL,
+slug VARCHAR(100) UNIQUE NOT NULL,
+theme_config JSONB DEFAULT '{
+"primaryColor": "#6366f1",
+"secondaryColor": "#22d3ee",
+"logo": null
+}'::jsonb,
+commission_rate DECIMAL(5,4) DEFAULT 0.10,
+contact_email VARCHAR(255),
+contact_phone VARCHAR(50),
+address TEXT,
+status VARCHAR(50) DEFAULT 'ACTIVE',
+created_at TIMESTAMPTZ DEFAULT NOW(),
+updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+
+
+
+CREATE TABLE core.users (
+id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+tenant_id UUID REFERENCES core.tenants(id) ON DELETE CASCADE,
+email VARCHAR(255) NOT NULL,
+password_hash VARCHAR(255),
+name VARCHAR(255) NOT NULL,
+phone VARCHAR(50),
+role VARCHAR(50) DEFAULT 'CUSTOMER' CHECK (role IN ('CUSTOMER', 'ADMIN', 'STAFF')),
+avatar_url TEXT,
+status VARCHAR(50) DEFAULT 'ACTIVE',
+created_at TIMESTAMPTZ DEFAULT NOW(),
+updated_at TIMESTAMPTZ DEFAULT NOW(),
+UNIQUE(tenant_id, email)
+);
+
+
+
+
+CREATE TABLE core.pets (
+id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+tenant_id UUID REFERENCES core.tenants(id) ON DELETE CASCADE,
+user_id UUID REFERENCES core.users(id) ON DELETE CASCADE,
+name VARCHAR(255) NOT NULL,
+species VARCHAR(100) NOT NULL DEFAULT 'DOG',
+breed VARCHAR(100),
+size VARCHAR(20) CHECK (size IN ('SMALL', 'MEDIUM', 'LARGE', 'EXTRA_LARGE')),
+birth_date DATE,
+weight_kg DECIMAL(5,2),
+notes TEXT,
+photo_url TEXT,
+status VARCHAR(50) DEFAULT 'ACTIVE',
+created_at TIMESTAMPTZ DEFAULT NOW(),
+updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+
+
+
+CREATE TABLE core.professionals (
+id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+tenant_id UUID REFERENCES core.tenants(id) ON DELETE CASCADE,
+user_id UUID REFERENCES core.users(id),
+name VARCHAR(255) NOT NULL,
+specialty VARCHAR(100),
+availability JSONB DEFAULT '{
+"monday": {"start": "08:00", "end": "18:00"},
+"tuesday": {"start": "08:00", "end": "18:00"},
+"wednesday": {"start": "08:00", "end": "18:00"},
+"thursday": {"start": "08:00", "end": "18:00"},
+"friday": {"start": "08:00", "end": "18:00"},
+"saturday": {"start": "08:00", "end": "12:00"},
+"sunday": null
+}'::jsonb,
+active BOOLEAN DEFAULT true,
+created_at TIMESTAMPTZ DEFAULT NOW(),
+updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+
+
+
+CREATE TABLE core.services (
+id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+tenant_id UUID REFERENCES core.tenants(id) ON DELETE CASCADE,
+name VARCHAR(255) NOT NULL,
+description TEXT,
+category VARCHAR(100),
+price_cents INTEGER NOT NULL,
+duration_minutes INTEGER NOT NULL DEFAULT 30,
+active BOOLEAN DEFAULT true,
+created_at TIMESTAMPTZ DEFAULT NOW(),
+updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+
+
+
+CREATE TABLE core.appointments (
+id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+tenant_id UUID REFERENCES core.tenants(id) ON DELETE CASCADE,
+user_id UUID REFERENCES core.users(id),
+pet_id UUID REFERENCES core.pets(id),
+professional_id UUID REFERENCES core.professionals(id),
+service_id UUID REFERENCES core.services(id),
+start_time TIMESTAMPTZ NOT NULL,
+end_time TIMESTAMPTZ NOT NULL,
+status VARCHAR(50) DEFAULT 'PENDING' CHECK (status IN (
+'PENDING',      -- Aguardando processamento
+'CONFIRMED',    -- Slot reservado
+'CANCELLED',    -- Cancelado
+'COMPLETED',    -- Finalizado
+'NO_SHOW'       -- Cliente n├úo compareceu
+)),
+notes TEXT,
+docker : Execution error 
+(PSQLException) at org.postgr
+esql.core.v3.QueryExecutorImp
+l/receiveErrorResponse (Query
+ExecutorImpl.java:2713).
+No linha:1 caractere:1
++ docker logs petoo-api 2>&1 
+| Out-File -FilePath 
+api-logs.txt -Encodin ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo           
+   : NotSpecified: (Executi  
+  on error...mpl.java:2713   
+ ).:String) [], RemoteExc    
+eption
+    + FullyQualifiedErrorId  
+   : NativeCommandError
+ 
+ERROR: relation "users" 
+already exists
+
+Full report at:
+/tmp/clojure-1639099350853073
+6374.edn
+transaction_id UUID,  -- Refer├¬ncia ao financial.transactions
+created_at TIMESTAMPTZ DEFAULT NOW(),
+updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+
+
+
+CREATE INDEX idx_users_tenant ON core.users(tenant_id);
+CREATE INDEX idx_users_email ON core.users(email);
+CREATE INDEX idx_pets_user ON core.pets(user_id);
+CREATE INDEX idx_pets_tenant ON core.pets(tenant_id);
+CREATE INDEX idx_professionals_tenant ON core.professionals(tenant_id);
+CREATE INDEX idx_services_tenant ON core.services(tenant_id);
+CREATE INDEX idx_appointments_tenant ON core.appointments(tenant_id);
+CREATE INDEX idx_appointments_professional ON core.appointments(professional_id);
+CREATE INDEX idx_appointments_start_time ON core.appointments(start_time);
+CREATE INDEX idx_appointments_status ON core.appointments(status);
+
+
+CREATE INDEX idx_appointments_slot_check ON core.appointments(
+professional_id, 
+start_time, 
+end_time
+) WHERE status IN ('PENDING', 'CONFIRMED');
+
+
+05:35:11.606 [main] ERROR migratus.migration.sql - ERROR: relation "users" already exists
+05:35:11.606 [main] ERROR migratus.database - Migration core-schema failed because Batch entry 1 CREATE TABLE core.users (
+id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+tenant_id UUID REFERENCES core.tenants(id) ON DELETE CASCADE,
+email VARCHAR(255) NOT NULL,
+password_hash VARCHAR(255),
+name VARCHAR(255) NOT NULL,
+phone VARCHAR(50),
+role VARCHAR(50) DEFAULT 'CUSTOMER' CHECK (role IN ('CUSTOMER', 'ADMIN', 'STAFF')),
+avatar_url TEXT,
+status VARCHAR(50) DEFAULT 'ACTIVE',
+created_at TIMESTAMPTZ DEFAULT NOW(),
+updated_at TIMESTAMPTZ DEFAULT NOW(),
+UNIQUE(tenant_id, email)
+) was aborted: ERROR: relation "users" already exists  Call getNextException to see other errors in the batch. backing out
+05:35:11.607 [main] ERROR migratus.migration.sql - failed to execute command:
+ 
+
+
+
+DROP TABLE IF EXISTS core.appointments CASCADE;
+DROP TABLE IF EXISTS core.services CASCADE;
+DROP TABLE IF EXISTS core.professionals CASCADE;
+DROP TABLE IF EXISTS core.pets CASCADE;
+DROP TABLE IF EXISTS core.users CASCADE;
+DROP TABLE IF EXISTS core.tenants CASCADE;
+
+
+05:35:11.607 [main] ERROR migratus.migration.sql - ERROR: current transaction is aborted, commands ignored until end of transaction block
+05:35:11.608 [main] INFO  migratus.core - Ending migrations
+ÔÜá´©Å  Migration failed or already up to date
+Ô£à Migrations complete!
+
+ÔòöÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòù
+Ôòæ   Starting Petoo Backend API...       Ôòæ
+ÔòÜÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòØ
+
+05:35:13.239 [main] INFO  org.eclipse.jetty.util.log - Logging initialized @1444ms to org.eclipse.jetty.util.log.Slf4jLog
+05:35:14.738 [main] INFO  pet-app.core - ÔòöÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòù
+05:35:14.738 [main] INFO  pet-app.core - Ôòæ     Petoo Backend - Starting...       Ôòæ
+05:35:14.738 [main] INFO  pet-app.core - ÔòÜÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòØ
+05:35:14.738 [main] INFO  pet-app.system - === Starting Petoo Backend ===
+05:35:14.756 [main] INFO  pet-app.system - Loading configuration with profile: :dev
+05:35:14.774 [main] INFO  pet-app.system - Initializing database connection pool...
+05:35:14.774 [main] DEBUG pet-app.system - JDBC URL: jdbc:postgresql://postgres:5432/petoo_db
+05:35:14.774 [main] DEBUG pet-app.system - User: petoo
+05:35:14.776 [main] DEBUG pet-app.system - Password length: 12
+05:35:14.776 [main] DEBUG pet-app.system - Password starts with: pet
+05:35:14.779 [main] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Starting...
+05:35:14.918 [main] INFO  com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@30a4a111
+05:35:14.919 [main] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Start completed.
+05:35:14.936 [main] INFO  pet-app.system - Ô£ô Database connection established
+05:35:14.937 [main] INFO  pet-app.system - Initializing Kafka producer...
+05:35:14.937 [main] INFO  pet-app.infra.kafka - Creating Kafka producer...
+05:35:15.105 [main] INFO  pet-app.system - Ô£ô Kafka producer initialized
+05:35:15.107 [main] INFO  pet-app.system - Initializing router...
+05:35:15.238 [main] INFO  pet-app.system - Initializing Ring handler...
+05:35:15.244 [main] INFO  pet-app.system - Starting pet care scheduler...
+05:35:15.245 [main] INFO  pet-app.workers.scheduler - Starting scheduler worker with interval: 30000 ms
+05:35:15.246 [main] INFO  pet-app.system - Ô£ô Pet care scheduler started (interval: 30000 ms)
+05:35:15.247 [main] INFO  pet-app.system - Starting HTTP server on 0.0.0.0:3000
+05:35:15.254 [pet-care-scheduler] DEBUG pet-app.infra.db - SQL: SELECT a.id, a.pet_id, a.user_id, a.enterprise_id, a.service_id, a.start_time, a.end_time, p.name AS pet_name, e.name AS enterprise_name FROM core.appointments AS a LEFT JOIN core.pets AS p ON a.pet_id = p.id LEFT JOIN core.enterprises AS e ON a.enterprise_id = e.id WHERE (a.status = ?) AND (a.start_time <= NOW())
+05:35:15.278 [pet-care-scheduler] DEBUG pet-app.infra.db - SQL: SELECT a.id, a.pet_id, a.user_id, a.enterprise_id, a.start_time, a.end_time, p.name AS pet_name FROM core.appointments AS a LEFT JOIN core.pets AS p ON a.pet_id = p.id WHERE (a.status = ?) AND (a.end_time <= NOW())
+05:35:15.284 [main] INFO  org.eclipse.jetty.server.Server - jetty-9.4.51.v20230217; built: 2023-02-17T08:19:37.309Z; git: b45c405e4544384de066f814ed42ae3dceacdd49; jvm 17.0.17+10
+05:35:15.313 [main] INFO  o.e.jetty.server.AbstractConnector - Started ServerConnector@2784145d{HTTP/1.1, (http/1.1)}{0.0.0.0:3000}
+05:35:15.313 [main] INFO  org.eclipse.jetty.server.Server - Started @3520ms
+05:35:15.314 [main] INFO  pet-app.system - Starting Kafka workers...
+05:35:15.314 [main] INFO  pet-app.workers.manager - Starting all workers...
+05:35:15.367 [main] INFO  pet-app.infra.kafka - Created Kafka consumer subscribed to: [appointment.created]
+05:35:15.370 [worker-availability] INFO  pet-app.workers.base - Worker availability started on topics: [appointment.created]
+05:35:15.371 [worker-availability] INFO  pet-app.workers.base - Starting consumer loop...
+05:35:15.378 [main] WARN  o.a.kafka.common.utils.AppInfoParser - Error registering AppInfo mbean
+javax.management.InstanceAlreadyExistsException: kafka.consumer:type=app-info,id=petoo-backend-consumer
+	at java.management/com.sun.jmx.mbeanserver.Repository.addMBean(Unknown Source)
+	at java.management/com.sun.jmx.interceptor.DefaultMBeanServerInterceptor.registerWithRepository(Unknown Source)
+	at java.management/com.sun.jmx.interceptor.DefaultMBeanServerInterceptor.registerDynamicMBean(Unknown Source)
+	at java.management/com.sun.jmx.interceptor.DefaultMBeanServerInterceptor.registerObject(Unknown Source)
+	at java.management/com.sun.jmx.interceptor.DefaultMBeanServerInterceptor.registerMBean(Unknown Source)
+	at java.management/com.sun.jmx.mbeanserver.JmxMBeanServer.registerMBean(Unknown Source)
+	at org.apache.kafka.common.utils.AppInfoParser.registerAppInfo(AppInfoParser.java:64)
+	at org.apache.kafka.clients.consumer.KafkaConsumer.<init>(KafkaConsumer.java:821)
+	at org.apache.kafka.clients.consumer.KafkaConsumer.<init>(KafkaConsumer.java:665)
+	at org.apache.kafka.clients.consumer.KafkaConsumer.<init>(KafkaConsumer.java:613)
+	at java.base/jdk.internal.reflect.NativeConstructorAccessorImpl.newInstance0(Native Method)
+	at java.base/jdk.internal.reflect.NativeConstructorAccessorImpl.newInstance(Unknown Source)
+	at java.base/jdk.internal.reflect.DelegatingConstructorAccessorImpl.newInstance(Unknown Source)
+	at java.base/java.lang.reflect.Constructor.newInstanceWithCaller(Unknown Source)
+	at java.base/java.lang.reflect.Constructor.newInstance(Unknown Source)
+	at clojure.lang.Reflector.invokeConstructor(Reflector.java:305)
+	at pet_app.infra.kafka$create_consumer.invokeStatic(kafka.clj:103)
+	at pet_app.infra.kafka$create_consumer.invoke(kafka.clj:93)
+	at pet_app.workers.base$run_worker.invokeStatic(base.clj:95)
+	at pet_app.workers.base$run_worker.invoke(base.clj:79)
+	at pet_app.workers.financial$start.invokeStatic(financial.clj:380)
+	at pet_app.workers.financial$start.invoke(financial.clj:372)
+	at pet_app.workers.manager$start_all_BANG_.invokeStatic(manager.clj:24)
+	at pet_app.workers.manager$start_all_BANG_.invoke(manager.clj:12)
+	at pet_app.system$fn__18326.invokeStatic(system.clj:96)
+	at pet_app.system$fn__18326.invoke(system.clj:88)
+	at clojure.lang.MultiFn.invoke(MultiFn.java:234)
+	at integrant.core$try_build_action.invokeStatic(core.cljc:305)
+	at integrant.core$try_build_action.invoke(core.cljc:304)
+	at integrant.core$build_key.invokeStatic(core.cljc:313)
+	at integrant.core$build_key.invoke(core.cljc:309)
+	at clojure.core$partial$fn__5912.invoke(core.clj:2656)
+	at clojure.core.protocols$fn__8249.invokeStatic(protocols.clj:168)
+	at clojure.core.protocols$fn__8249.invoke(protocols.clj:124)
+	at clojure.core.protocols$fn__8204$G__8199__8213.invoke(protocols.clj:19)
+	at clojure.core.protocols$seq_reduce.invokeStatic(protocols.clj:31)
+	at clojure.core.protocols$fn__8236.invokeStatic(protocols.clj:75)
+	at clojure.core.protocols$fn__8236.invoke(protocols.clj:75)
+	at clojure.core.protocols$fn__8178$G__8173__8191.invoke(protocols.clj:13)
+	at clojure.core$reduce.invokeStatic(core.clj:6886)
+	at clojure.core$reduce.invoke(core.clj:6868)
+	at integrant.core$build.invokeStatic(core.cljc:337)
+	at integrant.core$build.invoke(core.cljc:316)
+	at integrant.core$init.invokeStatic(core.cljc:445)
+	at integrant.core$init.invoke(core.cljc:437)
+	at integrant.core$init.invokeStatic(core.cljc:442)
+	at integrant.core$init.invoke(core.cljc:437)
+	at pet_app.system$start_system.invokeStatic(system.clj:202)
+	at pet_app.system$start_system.invoke(system.clj:196)
+	at pet_app.core$_main.invokeStatic(core.clj:20)
+	at pet_app.core$_main.doInvoke(core.clj:11)
+	at clojure.lang.RestFn.invoke(RestFn.java:397)
+	at clojure.lang.AFn.applyToHelper(AFn.java:152)
+	at clojure.lang.RestFn.applyTo(RestFn.java:132)
+	at pet_app.core.main(Unknown Source)
+05:35:15.384 [main] INFO  pet-app.infra.kafka - Created Kafka consumer subscribed to: [slot.reserved wallet.deposit.requested]
+05:35:15.385 [worker-financial] INFO  pet-app.workers.base - Worker financial started on topics: [slot.reserved wallet.deposit.requested]
+05:35:15.386 [worker-financial] INFO  pet-app.workers.base - Starting consumer loop...
+05:35:15.393 [main] WARN  o.a.kafka.common.utils.AppInfoParser - Error registering AppInfo mbean
+javax.management.InstanceAlreadyExistsException: kafka.consumer:type=app-info,id=petoo-backend-consumer
+	at java.management/com.sun.jmx.mbeanserver.Repository.addMBean(Unknown Source)
+	at java.management/com.sun.jmx.interceptor.DefaultMBeanServerInterceptor.registerWithRepository(Unknown Source)
+	at java.management/com.sun.jmx.interceptor.DefaultMBeanServerInterceptor.registerDynamicMBean(Unknown Source)
+	at java.management/com.sun.jmx.interceptor.DefaultMBeanServerInterceptor.registerObject(Unknown Source)
+	at java.management/com.sun.jmx.interceptor.DefaultMBeanServerInterceptor.registerMBean(Unknown Source)
+	at java.management/com.sun.jmx.mbeanserver.JmxMBeanServer.registerMBean(Unknown Source)
+	at org.apache.kafka.common.utils.AppInfoParser.registerAppInfo(AppInfoParser.java:64)
+	at org.apache.kafka.clients.consumer.KafkaConsumer.<init>(KafkaConsumer.java:821)
+	at org.apache.kafka.clients.consumer.KafkaConsumer.<init>(KafkaConsumer.java:665)
+	at org.apache.kafka.clients.consumer.KafkaConsumer.<init>(KafkaConsumer.java:613)
+	at java.base/jdk.internal.reflect.NativeConstructorAccessorImpl.newInstance0(Native Method)
+	at java.base/jdk.internal.reflect.NativeConstructorAccessorImpl.newInstance(Unknown Source)
+	at java.base/jdk.internal.reflect.DelegatingConstructorAccessorImpl.newInstance(Unknown Source)
+	at java.base/java.lang.reflect.Constructor.newInstanceWithCaller(Unknown Source)
+	at java.base/java.lang.reflect.Constructor.newInstance(Unknown Source)
+	at clojure.lang.Reflector.invokeConstructor(Reflector.java:305)
+	at pet_app.infra.kafka$create_consumer.invokeStatic(kafka.clj:103)
+	at pet_app.infra.kafka$create_consumer.invoke(kafka.clj:93)
+	at pet_app.workers.base$run_worker.invokeStatic(base.clj:95)
+	at pet_app.workers.base$run_worker.invoke(base.clj:79)
+	at pet_app.workers.projector$start.invokeStatic(projector.clj:337)
+	at pet_app.workers.projector$start.invoke(projector.clj:326)
+	at pet_app.workers.manager$start_all_BANG_.invokeStatic(manager.clj:25)
+	at pet_app.workers.manager$start_all_BANG_.invoke(manager.clj:12)
+	at pet_app.system$fn__18326.invokeStatic(system.clj:96)
+	at pet_app.system$fn__18326.invoke(system.clj:88)
+	at clojure.lang.MultiFn.invoke(MultiFn.java:234)
+	at integrant.core$try_build_action.invokeStatic(core.cljc:305)
+	at integrant.core$try_build_action.invoke(core.cljc:304)
+	at integrant.core$build_key.invokeStatic(core.cljc:313)
+	at integrant.core$build_key.invoke(core.cljc:309)
+	at clojure.core$partial$fn__5912.invoke(core.clj:2656)
+	at clojure.core.protocols$fn__8249.invokeStatic(protocols.clj:168)
+	at clojure.core.protocols$fn__8249.invoke(protocols.clj:124)
+	at clojure.core.protocols$fn__8204$G__8199__8213.invoke(protocols.clj:19)
+	at clojure.core.protocols$seq_reduce.invokeStatic(protocols.clj:31)
+	at clojure.core.protocols$fn__8236.invokeStatic(protocols.clj:75)
+	at clojure.core.protocols$fn__8236.invoke(protocols.clj:75)
+	at clojure.core.protocols$fn__8178$G__8173__8191.invoke(protocols.clj:13)
+	at clojure.core$reduce.invokeStatic(core.clj:6886)
+	at clojure.core$reduce.invoke(core.clj:6868)
+	at integrant.core$build.invokeStatic(core.cljc:337)
+	at integrant.core$build.invoke(core.cljc:316)
+	at integrant.core$init.invokeStatic(core.cljc:445)
+	at integrant.core$init.invoke(core.cljc:437)
+	at integrant.core$init.invokeStatic(core.cljc:442)
+	at integrant.core$init.invoke(core.cljc:437)
+	at pet_app.system$start_system.invokeStatic(system.clj:202)
+	at pet_app.system$start_system.invoke(system.clj:196)
+	at pet_app.core$_main.invokeStatic(core.clj:20)
+	at pet_app.core$_main.doInvoke(core.clj:11)
+	at clojure.lang.RestFn.invoke(RestFn.java:397)
+	at clojure.lang.AFn.applyToHelper(AFn.java:152)
+	at clojure.lang.RestFn.applyTo(RestFn.java:132)
+	at pet_app.core.main(Unknown Source)
+05:35:15.393 [main] INFO  pet-app.infra.kafka - Created Kafka consumer subscribed to: [appointment.created slot.reserved slot.conflict payment.success payment.failed wallet.deposit.completed wallet.deposit.failed]
+05:35:15.394 [worker-projector] INFO  pet-app.workers.base - Worker projector started on topics: [appointment.created slot.reserved slot.conflict payment.success payment.failed wallet.deposit.completed wallet.deposit.failed]
+05:35:15.394 [worker-projector] INFO  pet-app.workers.base - Starting consumer loop...
+05:35:15.395 [main] INFO  pet-app.workers.manager - All workers started: (:availability :financial :projector)
+05:35:15.395 [main] INFO  pet-app.system - Ô£ô All workers started successfully
+05:35:15.395 [main] INFO  pet-app.core - ÔòöÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòù
+05:35:15.395 [main] INFO  pet-app.core - Ôòæ     Petoo Backend - Ready! ­ƒÉ¥          Ôòæ
+05:35:15.395 [main] INFO  pet-app.core - Ôòæ     http://localhost:3000              Ôòæ
+05:35:15.396 [main] INFO  pet-app.core - ÔòÜÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòØ

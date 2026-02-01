@@ -158,12 +158,6 @@
       (not (valid-email? (:email user)))
       (response-bad-request "Invalid email format")
 
-      (nil? (:password user))
-      (response-bad-request "User password is required")
-
-      (not (valid-password? (:password user)))
-      (response-bad-request "Password must be at least 8 characters")
-
       (nil? (:name user))
       (response-bad-request "User name is required")
 
@@ -180,19 +174,31 @@
             ;; Criar enterprise e usuário em transação
             (let [enterprise-id (str (UUID/randomUUID))
                   user-id (str (UUID/randomUUID))
-                  password-hash (auth/hash-password (:password user))
+                  password (:password user)
+                  password-hash (when-not (clojure.string/blank? password)
+                                  (auth/hash-password password))
 
                   ;; Build enterprise record with only existing columns
                   enterprise-record (cond-> {:id [:cast enterprise-id :uuid]
                                              :name (:name enterprise)
                                              :slug (:slug enterprise)
                                              :status "ACTIVE"}
-                                      (:contact-email enterprise) (assoc :contact-email (:contact-email enterprise))
-                                      (:contact-phone enterprise) (assoc :contact-phone (:contact-phone enterprise))
+                                      (or (:contact-email enterprise) (:contactEmail enterprise)) 
+                                      (assoc :contact-email (or (:contact-email enterprise) (:contactEmail enterprise)))
+                                      
+                                      (or (:contact-phone enterprise) (:contactPhone enterprise)) 
+                                      (assoc :contact-phone (or (:contact-phone enterprise) (:contactPhone enterprise)))
+                                      
                                       (:address enterprise) (assoc :address (:address enterprise))
                                       (:logo-url enterprise) (assoc :logo-url (:logo-url enterprise))
                                       (:latitude enterprise) (assoc :latitude (:latitude enterprise))
-                                      (:longitude enterprise) (assoc :longitude (:longitude enterprise)))
+                                      (:longitude enterprise) (assoc :longitude (:longitude enterprise))
+                                      
+                                      (or (:cnpj enterprise) (:document enterprise))
+                                      (assoc :cnpj (or (:cnpj enterprise) (:document enterprise)))
+                                      
+                                      (or (:service-type enterprise) (:serviceType enterprise))
+                                      (assoc :service-type (or (:service-type enterprise) (:serviceType enterprise))))
 
                   ;; Criar enterprise
                   _ (db/execute-one! ds
@@ -317,12 +323,6 @@
       (not (valid-email? email))
       (response-bad-request "Invalid email format")
 
-      (nil? password)
-      (response-bad-request "Password is required")
-
-      (not (valid-password? password))
-      (response-bad-request "Password must be at least 8 characters")
-
       (nil? name)
       (response-bad-request "Name is required")
 
@@ -338,7 +338,8 @@
       :else
       (try
         (let [user-id (str (UUID/randomUUID))
-              password-hash (auth/hash-password password)
+              password-hash (when-not (clojure.string/blank? password)
+                              (auth/hash-password password))
               _ (db/execute-one! ds
                                  {:insert-into :core.users
                                   :values [{:id [:cast user-id :uuid]

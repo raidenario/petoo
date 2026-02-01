@@ -21,7 +21,7 @@
         (let [pets (db/execute! ds
                                 {:select [:p.id :p.name :p.species :p.breed :p.size
                                           :p.birth-date :p.weight-kg :p.photo-url
-                                          :p.notes :p.medical-notes :p.status
+                                          :p.notes :p.status
                                           :p.current-appointment-id :p.care-started-at
                                           :p.created-at :p.updated-at]
                                  :from [[:core.pets :p]]

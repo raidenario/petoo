@@ -68,6 +68,7 @@
       (try
         ;; Criar token OTP
         (let [otp-result (otp/create-otp-token ds phone)
+              _ (log/info "OTP generated for" phone ":" (:token otp-result))
               ;; Enviar SMS (mock em dev)
               sms-result (otp/send-otp-sms phone (:token otp-result))
               ;; Ambiente de desenvolvimento?
@@ -89,20 +90,18 @@
 ;; ============================================
 
 (defn verify-otp
-  "Verificar OTP e retornar JWT.
+  "Verificar OTP e retornar perfis disponíveis.
    
    Body:
      {:phone '+5511999998888'
       :token '123456'}
    
    Response (sucesso):
-     {:token 'jwt...'
-      :client {:id '...'
-               :phone '+5511999998888'
-               :name nil
-               :is-new-user true}}
+     {:profiles [{:type 'CLIENT' :id '...' :name '...'}
+                 {:type 'ENTERPRISE_ADMIN' :enterprise-id '...' :enterprise-name '...'}]
+      :needs-selection true/false}
    
-   Se cliente não existe, cria automaticamente."
+   Se nenhum perfil existe, retorna lista vazia (frontend cria cliente)."
   [{:keys [ds]} request]
   (let [{:keys [phone token]} (:body-params request)]
     (cond
@@ -125,41 +124,53 @@
         (if-not (:valid? result)
           (response-unauthorized (:error result))
 
-          ;; OTP válido - buscar ou criar cliente
+          ;; OTP válido - buscar todos os perfis disponíveis
           (try
-            (let [;; Buscar cliente existente
-                  existing-client (db/execute-one! ds
-                                                   {:select :*
-                                                    :from :core.clients
-                                                    :where [:= :phone phone]})
-                  ;; Criar se não existir
-                  client (or existing-client
-                             (let [client-id (str (UUID/randomUUID))]
-                               (db/execute-one! ds
-                                                {:insert-into :core.clients
-                                                 :values [{:id [:cast client-id :uuid]
-                                                           :phone phone
-                                                           :status "ACTIVE"}]
-                                                 :returning :*})))
-                  ;; Gerar JWT
-                  jwt-token (auth/generate-client-token
-                             (str (:id client))
-                             phone)]
+            (let [;; Buscar perfil Cliente
+                  client-profile (db/execute-one! ds
+                                   {:select [:id :phone :name :email :avatar-url]
+                                    :from :core.clients
+                                    :where [:= :phone phone]})
+                  
+                  ;; Buscar perfis Enterprise (usuários com role ENTERPRISE_ADMIN)
+                  enterprise-profiles (db/execute! ds
+                                        {:select [:u.id :u.name :u.email :u.enterprise-id
+                                                  [:e.name :enterprise-name]
+                                                  [:e.slug :enterprise-slug]]
+                                         :from [[:core.users :u]]
+                                         :join [[:core.enterprises :e] [:= :u.enterprise-id :e.id]]
+                                         :where [:and
+                                                 [:= :u.phone phone]
+                                                 [:= :u.role "ENTERPRISE_ADMIN"]]})
+                  
+                  ;; Montar lista de perfis
+                  profiles (concat
+                            (when client-profile
+                              [{:type "CLIENT"
+                                :id (str (:id client-profile))
+                                :name (:name client-profile)
+                                :email (:email client-profile)
+                                :avatar-url (:avatar-url client-profile)}])
+                            (map (fn [ep]
+                                   {:type "ENTERPRISE_ADMIN"
+                                    :id (str (:id ep))
+                                    :enterprise-id (str (:enterprise-id ep))
+                                    :enterprise-name (:enterprise-name ep)
+                                    :enterprise-slug (:enterprise-slug ep)
+                                    :name (:name ep)
+                                    :email (:email ep)})
+                                 enterprise-profiles))]
 
-              (log/info "Client authenticated:" phone
-                        "is-new-user:" (nil? existing-client))
+              (log/info "OTP verified for phone:" phone 
+                        "- Found" (count profiles) "profile(s)")
 
               (response-ok
-               {:token jwt-token
-                :client {:id (str (:id client))
-                         :phone (:phone client)
-                         :name (:name client)
-                         :email (:email client)
-                         :avatar-url (:avatar-url client)
-                         :is-new-user (nil? existing-client)}}))
+               {:profiles (vec profiles)
+                :needs-selection (> (count profiles) 1)
+                :phone phone}))
 
             (catch Exception e
-              (log/error e "Failed to create/get client for phone:" phone)
+              (log/error e "Failed to fetch profiles for phone:" phone)
               (response-error "Authentication failed"))))))))
 
 ;; ============================================

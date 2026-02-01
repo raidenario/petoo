@@ -47,7 +47,9 @@
   :wallet-deposit-failed "wallet.deposit.failed"
   :wallet-payment-requested "wallet.payment.requested"
   :wallet-payment-completed "wallet.payment.completed"
-  :wallet-payment-failed "wallet.payment.failed"}
+  :wallet-payment-failed "wallet.payment.failed"
+  :pet-events "pet.events"
+  :appointment-events "appointment.events"}
 
  :features
  {:enable-dev-endpoints #or [#env ENABLE_DEV_ENDPOINTS true]}

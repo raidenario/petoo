@@ -20,7 +20,7 @@ RUN clojure -P
 # Copy source code
 COPY src/ src/
 COPY resources/ resources/
-COPY dev/ dev/
+# COPY dev/ dev/
 
 # Build uberjar
 RUN clojure -T:build uber

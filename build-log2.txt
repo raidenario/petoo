@@ -1,0 +1,329 @@
+﻿docker-compose : --progress 
+is a global compose flag, 
+better use `docker compose 
+--progress xx build ...
+No linha:1 caractere:1
++ docker-compose build api 
+--progress=plain 2>&1 | 
+Out-File -FilePath b ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo           
+   : NotSpecified: (--progr  
+  ess is a...ss xx build .   
+ ..:String) [], RemoteExc    
+eption
+    + FullyQualifiedErrorId  
+   : NativeCommandError
+ 
+2026/02/01 02:32:25 http2: 
+server: error reading 
+preface from client 
+//./pipe/docker_engine: file 
+has already been closed
+#0 building with "default" instance using docker driver
+
+#1 [api internal] load build definition from Dockerfile
+#1 transferring dockerfile: 1.78kB done
+#1 DONE 0.0s
+
+#2 [api internal] load metadata for docker.io/library/eclipse-temurin:17-jre-alpine
+#2 ...
+
+#3 [api internal] load metadata for docker.io/library/clojure:temurin-17-tools-deps-1.11.1.1435-alpine
+#3 DONE 0.8s
+
+#2 [api internal] load metadata for docker.io/library/eclipse-temurin:17-jre-alpine
+#2 DONE 0.8s
+
+#4 [api internal] load .dockerignore
+#4 transferring context: 440B done
+#4 DONE 0.0s
+
+#5 [api runtime 1/8] FROM docker.io/library/eclipse-temurin:17-jre-alpine@sha256:71337aec9f5c665b2a6b49baed50251ee9a8fa9995c589a93be8badc85e40551
+#5 DONE 0.0s
+
+#6 [api builder 1/8] FROM docker.io/library/clojure:temurin-17-tools-deps-1.11.1.1435-alpine@sha256:945f4746dc03fe49096c334c00ab223677a96a5664af588de22c9ba87ae5bb39
+#6 DONE 0.0s
+
+#7 [api internal] load build context
+#7 transferring context: 6.13kB done
+#7 DONE 0.0s
+
+#8 [api builder 3/8] COPY deps.edn ./
+#8 CACHED
+
+#9 [api builder 5/8] RUN clojure -P
+#9 CACHED
+
+#10 [api builder 4/8] COPY build.clj ./
+#10 CACHED
+
+#11 [api builder 2/8] WORKDIR /app
+#11 CACHED
+
+#12 [api builder 6/8] COPY src/ src/
+#12 CACHED
+
+#13 [api builder 7/8] COPY resources/ resources/
+#13 CACHED
+
+#14 [api builder 8/8] RUN clojure -T:build uber
+#14 1.087 Cloning: https://github.com/clojure/tools.build.git
+#14 6.296 Checking out: https://github.com/clojure/tools.build.git at 8e78bccc35116f6b6fc0bf0c125dba8b8db8da6b
+#14 6.825 Downloading: org/slf4j/slf4j-nop/1.7.36/slf4j-nop-1.7.36.pom from central
+#14 6.825 Downloading: org/clojure/tools.deps/0.18.1354/tools.deps-0.18.1354.pom from central
+#14 6.826 Downloading: org/clojure/tools.namespace/1.4.4/tools.namespace-1.4.4.pom from central
+#14 6.882 Downloading: org/slf4j/slf4j-parent/1.7.36/slf4j-parent-1.7.36.pom from central
+#14 6.889 Downloading: org/clojure/tools.cli/1.0.214/tools.cli-1.0.214.pom from central
+#14 6.905 Downloading: com/cognitect/aws/api/0.8.612/api-0.8.612.pom from central
+#14 6.923 Downloading: com/cognitect/aws/endpoints/1.1.12.321/endpoints-1.1.12.321.pom from central
+#14 6.925 Downloading: com/cognitect/aws/s3/822.2.1145.0/s3-822.2.1145.0.pom from central
+#14 6.941 Downloading: org/apache/maven/resolver/maven-resolver-impl/1.8.2/maven-resolver-impl-1.8.2.pom from central
+#14 6.942 Downloading: org/apache/maven/resolver/maven-resolver-spi/1.8.2/maven-resolver-spi-1.8.2.pom from central
+#14 6.943 Downloading: org/apache/maven/resolver/maven-resolver-connector-basic/1.8.2/maven-resolver-connector-basic-1.8.2.pom from central
+#14 6.944 Downloading: org/apache/maven/resolver/maven-resolver-util/1.8.2/maven-resolver-util-1.8.2.pom from central
+#14 6.944 Downloading: org/apache/maven/maven-resolver-provider/3.8.6/maven-resolver-provider-3.8.6.pom from central
+#14 6.948 Downloading: com/google/guava/guava/31.1-android/guava-31.1-android.pom from central
+#14 6.949 Downloading: org/apache/maven/resolver/maven-resolver-transport-file/1.8.2/maven-resolver-transport-file-1.8.2.pom from central
+#14 6.949 Downloading: org/clojure/data.xml/0.2.0-alpha8/data.xml-0.2.0-alpha8.pom from central
+#14 6.952 Downloading: javax/inject/javax.inject/1/javax.inject-1.pom from central
+#14 6.954 Downloading: org/apache/maven/resolver/maven-resolver-api/1.8.2/maven-resolver-api-1.8.2.pom from central
+#14 6.956 Downloading: org/slf4j/slf4j-api/1.7.36/slf4j-api-1.7.36.pom from central
+#14 6.959 Downloading: org/clojure/tools.reader/1.3.6/tools.reader-1.3.6.pom from central
+#14 6.960 Downloading: org/clojure/tools.gitlibs/2.5.197/tools.gitlibs-2.5.197.pom from central
+#14 6.960 Downloading: org/apache/maven/resolver/maven-resolver-transport-http/1.8.2/maven-resolver-transport-http-1.8.2.pom from central
+#14 6.968 Downloading: org/apache/maven/maven-core/3.8.6/maven-core-3.8.6.pom from central
+#14 6.975 Downloading: org/apache/maven/resolver/maven-resolver/1.8.2/maven-resolver-1.8.2.pom from central
+#14 6.978 Downloading: org/apache/maven/maven/3.8.6/maven-3.8.6.pom from central
+#14 6.990 Downloading: com/google/guava/guava-parent/31.1-android/guava-parent-31.1-android.pom from central
+#14 7.001 Downloading: org/clojure/java.classpath/1.0.0/java.classpath-1.0.0.pom from central
+#14 7.009 Downloading: org/apache/maven/maven-parent/36/maven-parent-36.pom from central
+#14 7.029 Downloading: org/apache/maven/maven-parent/35/maven-parent-35.pom from central
+#14 7.068 Downloading: org/apache/apache/26/apache-26.pom from central
+#14 7.073 Downloading: org/apache/apache/25/apache-25.pom from central
+#14 7.116 Downloading: org/apache/commons/commons-lang3/3.12.0/commons-lang3-3.12.0.pom from central
+#14 7.117 Downloading: org/slf4j/jcl-over-slf4j/1.7.36/jcl-over-slf4j-1.7.36.pom from central
+#14 7.118 Downloading: org/apache/httpcomponents/httpcore/4.4.15/httpcore-4.4.15.pom from central
+#14 7.118 Downloading: org/apache/maven/maven-model-builder/3.8.6/maven-model-builder-3.8.6.pom from central
+#14 7.118 Downloading: org/apache/maven/resolver/maven-resolver-named-locks/1.8.2/maven-resolver-named-locks-1.8.2.pom from central
+#14 7.122 Downloading: org/apache/httpcomponents/httpclient/4.5.13/httpclient-4.5.13.pom from central
+#14 7.128 Downloading: javax/annotation/javax.annotation-api/1.3.2/javax.annotation-api-1.3.2.pom from central
+#14 7.129 Downloading: org/apache/maven/maven-model/3.8.6/maven-model-3.8.6.pom from central
+#14 7.129 Downloading: org/codehaus/plexus/plexus-utils/3.3.1/plexus-utils-3.3.1.pom from central
+#14 7.133 Downloading: org/apache/maven/maven-builder-support/3.8.6/maven-builder-support-3.8.6.pom from central
+#14 7.135 Downloading: org/apache/maven/maven-settings-builder/3.8.6/maven-settings-builder-3.8.6.pom from central
+#14 7.139 Downloading: org/apache/maven/maven-settings/3.8.6/maven-settings-3.8.6.pom from central
+#14 7.139 Downloading: org/apache/maven/maven-repository-metadata/3.8.6/maven-repository-metadata-3.8.6.pom from central
+#14 7.140 Downloading: org/apache/maven/maven-artifact/3.8.6/maven-artifact-3.8.6.pom from central
+#14 7.151 Downloading: org/apache/maven/maven-plugin-api/3.8.6/maven-plugin-api-3.8.6.pom from central
+#14 7.156 Downloading: org/apache/httpcomponents/httpcomponents-core/4.4.15/httpcomponents-core-4.4.15.pom from central
+#14 7.156 Downloading: org/apache/httpcomponents/httpcomponents-client/4.5.13/httpcomponents-client-4.5.13.pom from central
+#14 7.161 Downloading: org/junit/junit-bom/5.7.1/junit-bom-5.7.1.pom from central
+#14 7.161 Downloading: org/codehaus/plexus/plexus/5.1/plexus-5.1.pom from central
+#14 7.167 Downloading: org/apache/maven/shared/maven-shared-utils/3.3.4/maven-shared-utils-3.3.4.pom from central
+#14 7.175 Downloading: org/eclipse/sisu/org.eclipse.sisu.plexus/0.3.5/org.eclipse.sisu.plexus-0.3.5.pom from central
+#14 7.181 Downloading: com/google/inject/guice/4.2.2/guice-4.2.2.pom from central
+#14 7.181 Downloading: org/eclipse/sisu/org.eclipse.sisu.inject/0.3.5/org.eclipse.sisu.inject-0.3.5.pom from central
+#14 7.185 Downloading: org/codehaus/plexus/plexus-interpolation/1.26/plexus-interpolation-1.26.pom from central
+#14 7.185 Downloading: org/codehaus/plexus/plexus-classworlds/2.6.0/plexus-classworlds-2.6.0.pom from central
+#14 7.189 Downloading: org/codehaus/plexus/plexus-component-annotations/2.1.0/plexus-component-annotations-2.1.0.pom from central
+#14 7.190 Downloading: org/apache/httpcomponents/httpcomponents-parent/11/httpcomponents-parent-11.pom from central
+#14 7.195 Downloading: com/google/j2objc/j2objc-annotations/1.3/j2objc-annotations-1.3.pom from central
+#14 7.197 Downloading: org/apache/maven/shared/maven-shared-components/34/maven-shared-components-34.pom from central
+#14 7.199 Downloading: com/google/errorprone/error_prone_annotations/2.11.0/error_prone_annotations-2.11.0.pom from central
+#14 7.199 Downloading: com/google/guava/failureaccess/1.0.1/failureaccess-1.0.1.pom from central
+#14 7.201 Downloading: com/google/code/findbugs/jsr305/3.0.2/jsr305-3.0.2.pom from central
+#14 7.201 Downloading: com/cognitect/http-client/1.0.115/http-client-1.0.115.pom from central
+#14 7.202 Downloading: com/google/guava/listenablefuture/9999.0-empty-to-avoid-conflict-with-guava/listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.pom from central
+#14 7.205 Downloading: org/checkerframework/checker-qual/3.12.0/checker-qual-3.12.0.pom from central
+#14 7.218 Downloading: org/eclipse/sisu/sisu-inject/0.3.5/sisu-inject-0.3.5.pom from central
+#14 7.220 Downloading: org/eclipse/sisu/sisu-plexus/0.3.5/sisu-plexus-0.3.5.pom from central
+#14 7.221 Downloading: org/codehaus/plexus/plexus-containers/2.1.0/plexus-containers-2.1.0.pom from central
+#14 7.221 Downloading: com/google/inject/guice-parent/4.2.2/guice-parent-4.2.2.pom from central
+#14 7.222 Downloading: org/clojure/core.async/1.6.673/core.async-1.6.673.pom from central
+#14 7.228 Downloading: org/apache/apache/21/apache-21.pom from central
+#14 7.231 Downloading: com/google/errorprone/error_prone_parent/2.11.0/error_prone_parent-2.11.0.pom from central
+#14 7.233 Downloading: org/apache/maven/maven-parent/34/maven-parent-34.pom from central
+#14 7.237 Downloading: com/google/guava/guava-parent/26.0-android/guava-parent-26.0-android.pom from central
+#14 7.256 Downloading: com/google/google/5/google-5.pom from central
+#14 7.266 Downloading: commons-codec/commons-codec/1.11/commons-codec-1.11.pom from central
+#14 7.281 Downloading: org/codehaus/plexus/plexus-sec-dispatcher/2.0/plexus-sec-dispatcher-2.0.pom from central
+#14 7.289 Downloading: aopalliance/aopalliance/1.0/aopalliance-1.0.pom from central
+#14 7.298 Downloading: org/apache/commons/commons-parent/42/commons-parent-42.pom from central
+#14 7.300 Downloading: org/eclipse/jetty/jetty-client/9.4.48.v20220622/jetty-client-9.4.48.v20220622.pom from central
+#14 7.302 Downloading: org/eclipse/jetty/jetty-util/9.4.48.v20220622/jetty-util-9.4.48.v20220622.pom from central
+#14 7.302 Downloading: org/clojure/tools.analyzer.jvm/1.2.2/tools.analyzer.jvm-1.2.2.pom from central
+#14 7.306 Downloading: org/eclipse/jetty/jetty-http/9.4.48.v20220622/jetty-http-9.4.48.v20220622.pom from central
+#14 7.311 Downloading: org/codehaus/plexus/plexus/8/plexus-8.pom from central
+#14 7.332 Downloading: org/eclipse/jetty/jetty-project/9.4.48.v20220622/jetty-project-9.4.48.v20220622.pom from central
+#14 7.334 Downloading: org/apache/apache/18/apache-18.pom from central
+#14 7.367 Downloading: org/junit/junit-bom/5.8.2/junit-bom-5.8.2.pom from central
+#14 7.381 Downloading: org/codehaus/plexus/plexus-cipher/2.0/plexus-cipher-2.0.pom from central
+#14 7.382 Downloading: org/codehaus/plexus/plexus-utils/3.4.1/plexus-utils-3.4.1.pom from central
+#14 7.404 Downloading: org/infinispan/infinispan-bom/11.0.15.Final/infinispan-bom-11.0.15.Final.pom from central
+#14 7.435 Downloading: org/infinispan/infinispan-build-configuration-parent/11.0.15.Final/infinispan-build-configuration-parent-11.0.15.Final.pom from central
+#14 7.522 Downloading: org/eclipse/jetty/jetty-io/9.4.48.v20220622/jetty-io-9.4.48.v20220622.pom from central
+#14 7.538 Downloading: org/ow2/asm/asm/9.2/asm-9.2.pom from central
+#14 7.538 Downloading: org/clojure/core.memoize/1.0.253/core.memoize-1.0.253.pom from central
+#14 7.538 Downloading: org/clojure/tools.analyzer/1.1.0/tools.analyzer-1.1.0.pom from central
+#14 7.567 Downloading: org/ow2/ow2/1.5/ow2-1.5.pom from central
+#14 7.573 Downloading: org/clojure/core.cache/1.0.225/core.cache-1.0.225.pom from central
+#14 7.616 Downloading: org/clojure/data.priority-map/1.1.0/data.priority-map-1.1.0.pom from central
+#14 7.652 Downloading: com/cognitect/aws/api/0.8.612/api-0.8.612.jar from central
+#14 7.655 Downloading: org/clojure/tools.cli/1.0.214/tools.cli-1.0.214.jar from central
+#14 7.656 Downloading: org/eclipse/jetty/jetty-util/9.4.48.v20220622/jetty-util-9.4.48.v20220622.jar from central
+#14 7.662 Downloading: org/clojure/tools.analyzer.jvm/1.2.2/tools.analyzer.jvm-1.2.2.jar from central
+#14 7.662 Downloading: org/slf4j/jcl-over-slf4j/1.7.36/jcl-over-slf4j-1.7.36.jar from central
+#14 7.666 Downloading: com/google/errorprone/error_prone_annotations/2.11.0/error_prone_annotations-2.11.0.jar from central
+#14 7.668 Downloading: org/eclipse/jetty/jetty-http/9.4.48.v20220622/jetty-http-9.4.48.v20220622.jar from central
+#14 7.668 Downloading: org/codehaus/plexus/plexus-component-annotations/2.1.0/plexus-component-annotations-2.1.0.jar from central
+#14 7.670 Downloading: org/clojure/tools.analyzer/1.1.0/tools.analyzer-1.1.0.jar from central
+#14 7.676 Downloading: org/apache/maven/maven-model-builder/3.8.6/maven-model-builder-3.8.6.jar from central
+#14 7.682 Downloading: javax/annotation/javax.annotation-api/1.3.2/javax.annotation-api-1.3.2.jar from central
+#14 7.684 Downloading: com/cognitect/aws/endpoints/1.1.12.321/endpoints-1.1.12.321.jar from central
+#14 7.686 Downloading: org/apache/commons/commons-lang3/3.12.0/commons-lang3-3.12.0.jar from central
+#14 7.687 Downloading: org/apache/maven/resolver/maven-resolver-transport-http/1.8.2/maven-resolver-transport-http-1.8.2.jar from central
+#14 7.696 Downloading: commons-codec/commons-codec/1.11/commons-codec-1.11.jar from central
+#14 7.700 Downloading: javax/inject/javax.inject/1/javax.inject-1.jar from central
+#14 7.714 Downloading: org/codehaus/plexus/plexus-cipher/2.0/plexus-cipher-2.0.jar from central
+#14 7.714 Downloading: org/codehaus/plexus/plexus-utils/3.4.1/plexus-utils-3.4.1.jar from central
+#14 7.729 Downloading: org/apache/maven/resolver/maven-resolver-transport-file/1.8.2/maven-resolver-transport-file-1.8.2.jar from central
+#14 7.730 Downloading: org/apache/maven/maven-settings-builder/3.8.6/maven-settings-builder-3.8.6.jar from central
+#14 7.732 Downloading: com/google/guava/listenablefuture/9999.0-empty-to-avoid-conflict-with-guava/listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar from central
+#14 7.743 Downloading: org/eclipse/sisu/org.eclipse.sisu.plexus/0.3.5/org.eclipse.sisu.plexus-0.3.5.jar from central
+#14 7.752 Downloading: org/clojure/tools.namespace/1.4.4/tools.namespace-1.4.4.jar from central
+#14 7.770 Downloading: org/ow2/asm/asm/9.2/asm-9.2.jar from central
+#14 7.786 Downloading: org/apache/maven/maven-settings/3.8.6/maven-settings-3.8.6.jar from central
+#14 7.811 Downloading: org/apache/httpcomponents/httpcore/4.4.15/httpcore-4.4.15.jar from central
+#14 7.815 Downloading: org/codehaus/plexus/plexus-sec-dispatcher/2.0/plexus-sec-dispatcher-2.0.jar from central
+#14 7.818 Downloading: org/apache/maven/maven-core/3.8.6/maven-core-3.8.6.jar from central
+#14 7.831 Downloading: com/cognitect/http-client/1.0.115/http-client-1.0.115.jar from central
+#14 7.833 Downloading: org/apache/maven/maven-resolver-provider/3.8.6/maven-resolver-provider-3.8.6.jar from central
+#14 7.837 Downloading: org/apache/maven/resolver/maven-resolver-api/1.8.2/maven-resolver-api-1.8.2.jar from central
+#14 7.879 Downloading: org/apache/maven/shared/maven-shared-utils/3.3.4/maven-shared-utils-3.3.4.jar from central
+#14 7.919 Downloading: org/clojure/java.classpath/1.0.0/java.classpath-1.0.0.jar from central
+#14 7.946 Downloading: com/google/guava/failureaccess/1.0.1/failureaccess-1.0.1.jar from central
+#14 7.952 Downloading: com/google/guava/guava/31.1-android/guava-31.1-android.jar from central
+#14 7.968 Downloading: org/clojure/data.xml/0.2.0-alpha8/data.xml-0.2.0-alpha8.jar from central
+#14 8.000 Downloading: org/apache/maven/resolver/maven-resolver-spi/1.8.2/maven-resolver-spi-1.8.2.jar from central
+#14 8.006 Downloading: org/slf4j/slf4j-nop/1.7.36/slf4j-nop-1.7.36.jar from central
+#14 8.008 Downloading: org/codehaus/plexus/plexus-classworlds/2.6.0/plexus-classworlds-2.6.0.jar from central
+#14 8.008 Downloading: com/google/j2objc/j2objc-annotations/1.3/j2objc-annotations-1.3.jar from central
+#14 8.016 Downloading: org/codehaus/plexus/plexus-interpolation/1.26/plexus-interpolation-1.26.jar from central
+#14 8.022 Downloading: org/clojure/tools.deps/0.18.1354/tools.deps-0.18.1354.jar from central
+#14 8.031 Downloading: org/apache/httpcomponents/httpclient/4.5.13/httpclient-4.5.13.jar from central
+#14 8.060 Downloading: org/checkerframework/checker-qual/3.12.0/checker-qual-3.12.0.jar from central
+#14 8.087 Downloading: com/google/inject/guice/4.2.2/guice-4.2.2-no_aop.jar from central
+#14 8.133 Downloading: org/eclipse/jetty/jetty-client/9.4.48.v20220622/jetty-client-9.4.48.v20220622.jar from central
+#14 8.139 Downloading: org/clojure/tools.gitlibs/2.5.197/tools.gitlibs-2.5.197.jar from central
+#14 8.151 Downloading: org/eclipse/jetty/jetty-io/9.4.48.v20220622/jetty-io-9.4.48.v20220622.jar from central
+#14 8.172 Downloading: org/clojure/tools.reader/1.3.6/tools.reader-1.3.6.jar from central
+#14 8.179 Downloading: org/apache/maven/resolver/maven-resolver-connector-basic/1.8.2/maven-resolver-connector-basic-1.8.2.jar from central
+#14 8.184 Downloading: org/slf4j/slf4j-api/1.7.36/slf4j-api-1.7.36.jar from central
+#14 8.191 Downloading: com/cognitect/aws/s3/822.2.1145.0/s3-822.2.1145.0.jar from central
+#14 8.202 Downloading: org/apache/maven/resolver/maven-resolver-impl/1.8.2/maven-resolver-impl-1.8.2.jar from central
+#14 8.222 Downloading: org/apache/maven/maven-model/3.8.6/maven-model-3.8.6.jar from central
+#14 8.281 Downloading: org/eclipse/sisu/org.eclipse.sisu.inject/0.3.5/org.eclipse.sisu.inject-0.3.5.jar from central
+#14 8.297 Downloading: org/apache/maven/resolver/maven-resolver-util/1.8.2/maven-resolver-util-1.8.2.jar from central
+#14 8.335 Downloading: org/clojure/core.memoize/1.0.253/core.memoize-1.0.253.jar from central
+#14 8.339 Downloading: org/apache/maven/resolver/maven-resolver-named-locks/1.8.2/maven-resolver-named-locks-1.8.2.jar from central
+#14 8.345 Downloading: org/clojure/data.priority-map/1.1.0/data.priority-map-1.1.0.jar from central
+#14 8.346 Downloading: org/apache/maven/maven-repository-metadata/3.8.6/maven-repository-metadata-3.8.6.jar from central
+#14 8.365 Downloading: aopalliance/aopalliance/1.0/aopalliance-1.0.jar from central
+#14 8.413 Downloading: org/apache/maven/maven-builder-support/3.8.6/maven-builder-support-3.8.6.jar from central
+#14 8.414 Downloading: com/google/code/findbugs/jsr305/3.0.2/jsr305-3.0.2.jar from central
+#14 8.417 Downloading: org/clojure/core.cache/1.0.225/core.cache-1.0.225.jar from central
+#14 8.425 Downloading: org/apache/maven/maven-plugin-api/3.8.6/maven-plugin-api-3.8.6.jar from central
+#14 8.427 Downloading: org/clojure/core.async/1.6.673/core.async-1.6.673.jar from central
+#14 8.432 Downloading: org/apache/maven/maven-artifact/3.8.6/maven-artifact-3.8.6.jar from central
+#14 13.40 05:32:39,816 |-INFO in ch.qos.logback.classic.LoggerContext[default] - This is logback-classic version 1.4.11
+#14 13.40 05:32:39,818 |-INFO in ch.qos.logback.classic.util.ContextInitializer@28bdbe88 - No custom configurators were discovered as a service.
+#14 13.40 05:32:39,818 |-INFO in ch.qos.logback.classic.util.ContextInitializer@28bdbe88 - Trying to configure with ch.qos.logback.classic.joran.SerializedModelConfigurator
+#14 13.40 05:32:39,820 |-INFO in ch.qos.logback.classic.util.ContextInitializer@28bdbe88 - Constructed configurator of type class ch.qos.logback.classic.joran.SerializedModelConfigurator
+#14 13.40 05:32:39,842 |-INFO in ch.qos.logback.classic.LoggerContext[default] - Could NOT find resource [logback-test.scmo]
+#14 13.40 05:32:39,842 |-INFO in ch.qos.logback.classic.LoggerContext[default] - Could NOT find resource [logback.scmo]
+#14 13.40 05:32:39,851 |-INFO in ch.qos.logback.classic.util.ContextInitializer@28bdbe88 - ch.qos.logback.classic.joran.SerializedModelConfigurator.configure() call lasted 23 milliseconds. ExecutionStatus=INVOKE_NEXT_IF_ANY
+#14 13.40 05:32:39,852 |-INFO in ch.qos.logback.classic.util.ContextInitializer@28bdbe88 - Trying to configure with ch.qos.logback.classic.util.DefaultJoranConfigurator
+#14 13.40 05:32:39,852 |-INFO in ch.qos.logback.classic.util.ContextInitializer@28bdbe88 - Constructed configurator of type class ch.qos.logback.classic.util.DefaultJoranConfigurator
+#14 13.40 05:32:39,852 |-INFO in ch.qos.logback.classic.LoggerContext[default] - Could NOT find resource [logback-test.xml]
+#14 13.40 05:32:39,856 |-INFO in ch.qos.logback.classic.LoggerContext[default] - Found resource [logback.xml] at [file:/app/target/classes/logback.xml]
+#14 13.40 05:32:39,857 |-WARN in ch.qos.logback.classic.util.DefaultJoranConfigurator@6a87026 - Resource [logback.xml] occurs multiple times on the classpath.
+#14 13.40 05:32:39,857 |-WARN in ch.qos.logback.classic.util.DefaultJoranConfigurator@6a87026 - Resource [logback.xml] occurs at [file:/app/resources/logback.xml]
+#14 13.40 05:32:39,857 |-WARN in ch.qos.logback.classic.util.DefaultJoranConfigurator@6a87026 - Resource [logback.xml] occurs at [file:/app/target/classes/logback.xml]
+#14 13.40 05:32:39,971 |-INFO in ch.qos.logback.core.model.processor.AppenderModelHandler - Processing appender named [STDOUT]
+#14 13.40 05:32:39,971 |-INFO in ch.qos.logback.core.model.processor.AppenderModelHandler - About to instantiate appender of type [ch.qos.logback.core.ConsoleAppender]
+#14 13.40 05:32:39,976 |-INFO in ch.qos.logback.core.model.processor.ImplicitModelHandler - Assuming default type [ch.qos.logback.classic.encoder.PatternLayoutEncoder] for [encoder] property
+#14 13.40 05:32:39,998 |-INFO in ch.qos.logback.core.model.processor.AppenderModelHandler - Processing appender named [AVAILABILITY_FILE]
+#14 13.40 05:32:39,998 |-INFO in ch.qos.logback.core.model.processor.AppenderModelHandler - About to instantiate appender of type [ch.qos.logback.core.FileAppender]
+#14 13.40 05:32:40,000 |-INFO in ch.qos.logback.core.model.processor.ImplicitModelHandler - Assuming default type [ch.qos.logback.classic.encoder.PatternLayoutEncoder] for [encoder] property
+#14 13.40 05:32:40,001 |-INFO in ch.qos.logback.core.FileAppender[AVAILABILITY_FILE] - File property is set to [logs/worker-availability.log]
+#14 13.40 05:32:40,003 |-INFO in ch.qos.logback.core.model.processor.AppenderModelHandler - Processing appender named [FINANCIAL_FILE]
+#14 13.40 05:32:40,003 |-INFO in ch.qos.logback.core.model.processor.AppenderModelHandler - About to instantiate appender of type [ch.qos.logback.core.FileAppender]
+#14 13.40 05:32:40,003 |-INFO in ch.qos.logback.core.model.processor.ImplicitModelHandler - Assuming default type [ch.qos.logback.classic.encoder.PatternLayoutEncoder] for [encoder] property
+#14 13.40 05:32:40,003 |-INFO in ch.qos.logback.core.FileAppender[FINANCIAL_FILE] - File property is set to [logs/worker-financial.log]
+#14 13.40 05:32:40,003 |-INFO in ch.qos.logback.core.model.processor.AppenderModelHandler - Processing appender named [PROJECTOR_FILE]
+#14 13.40 05:32:40,003 |-INFO in ch.qos.logback.core.model.processor.AppenderModelHandler - About to instantiate appender of type [ch.qos.logback.core.FileAppender]
+#14 13.40 05:32:40,004 |-INFO in ch.qos.logback.core.model.processor.ImplicitModelHandler - Assuming default type [ch.qos.logback.classic.encoder.PatternLayoutEncoder] for [encoder] property
+#14 13.40 05:32:40,004 |-INFO in ch.qos.logback.core.FileAppender[PROJECTOR_FILE] - File property is set to [logs/worker-projector.log]
+#14 13.40 05:32:40,004 |-INFO in ch.qos.logback.core.model.processor.AppenderModelHandler - Processing appender named [API_FILE]
+#14 13.40 05:32:40,004 |-INFO in ch.qos.logback.core.model.processor.AppenderModelHandler - About to instantiate appender of type [ch.qos.logback.core.FileAppender]
+#14 13.40 05:32:40,004 |-INFO in ch.qos.logback.core.model.processor.ImplicitModelHandler - Assuming default type [ch.qos.logback.classic.encoder.PatternLayoutEncoder] for [encoder] property
+#14 13.40 05:32:40,005 |-INFO in ch.qos.logback.core.FileAppender[API_FILE] - File property is set to [logs/api.log]
+#14 13.40 05:32:40,006 |-INFO in ch.qos.logback.classic.model.processor.LoggerModelHandler - Setting level of logger [pet-app.workers.availability] to DEBUG
+#14 13.40 05:32:40,009 |-INFO in ch.qos.logback.classic.model.processor.LoggerModelHandler - Setting additivity of logger [pet-app.workers.availability] to true
+#14 13.40 05:32:40,009 |-INFO in ch.qos.logback.core.model.processor.AppenderRefModelHandler - Attaching appender named [AVAILABILITY_FILE] to Logger[pet-app.workers.availability]
+#14 13.40 05:32:40,010 |-INFO in ch.qos.logback.classic.model.processor.LoggerModelHandler - Setting level of logger [pet-app.workers.financial] to DEBUG
+#14 13.40 05:32:40,010 |-INFO in ch.qos.logback.classic.model.processor.LoggerModelHandler - Setting additivity of logger [pet-app.workers.financial] to true
+#14 13.40 05:32:40,010 |-INFO in ch.qos.logback.core.model.processor.AppenderRefModelHandler - Attaching appender named [FINANCIAL_FILE] to Logger[pet-app.workers.financial]
+#14 13.40 05:32:40,010 |-INFO in ch.qos.logback.classic.model.processor.LoggerModelHandler - Setting level of logger [pet-app.workers.projector] to DEBUG
+#14 13.40 05:32:40,010 |-INFO in ch.qos.logback.classic.model.processor.LoggerModelHandler - Setting additivity of logger [pet-app.workers.projector] to true
+#14 13.40 05:32:40,010 |-INFO in ch.qos.logback.core.model.processor.AppenderRefModelHandler - Attaching appender named [PROJECTOR_FILE] to Logger[pet-app.workers.projector]
+#14 13.40 05:32:40,010 |-INFO in ch.qos.logback.classic.model.processor.LoggerModelHandler - Setting level of logger [pet-app.workers.base] to DEBUG
+#14 13.40 05:32:40,010 |-INFO in ch.qos.logback.classic.model.processor.LoggerModelHandler - Setting additivity of logger [pet-app.workers.base] to true
+#14 13.40 05:32:40,010 |-INFO in ch.qos.logback.core.model.processor.AppenderRefModelHandler - Attaching appender named [AVAILABILITY_FILE] to Logger[pet-app.workers.base]
+#14 13.40 05:32:40,010 |-INFO in ch.qos.logback.core.model.processor.AppenderRefModelHandler - Attaching appender named [FINANCIAL_FILE] to Logger[pet-app.workers.base]
+#14 13.40 05:32:40,010 |-INFO in ch.qos.logback.core.model.processor.AppenderRefModelHandler - Attaching appender named [PROJECTOR_FILE] to Logger[pet-app.workers.base]
+#14 13.40 05:32:40,010 |-INFO in ch.qos.logback.classic.model.processor.LoggerModelHandler - Setting level of logger [pet-app.api] to DEBUG
+#14 13.40 05:32:40,010 |-INFO in ch.qos.logback.classic.model.processor.LoggerModelHandler - Setting additivity of logger [pet-app.api] to true
+#14 13.40 05:32:40,010 |-INFO in ch.qos.logback.core.model.processor.AppenderRefModelHandler - Attaching appender named [API_FILE] to Logger[pet-app.api]
+#14 13.40 05:32:40,010 |-INFO in ch.qos.logback.classic.model.processor.LoggerModelHandler - Setting level of logger [pet-app] to DEBUG
+#14 13.40 05:32:40,010 |-INFO in ch.qos.logback.classic.model.processor.LoggerModelHandler - Setting level of logger [org.apache.kafka] to WARN
+#14 13.40 05:32:40,010 |-INFO in ch.qos.logback.classic.model.processor.LoggerModelHandler - Setting level of logger [org.apache.zookeeper] to WARN
+#14 13.40 05:32:40,010 |-INFO in ch.qos.logback.classic.model.processor.LoggerModelHandler - Setting level of logger [com.zaxxer.hikari] to INFO
+#14 13.40 05:32:40,010 |-INFO in ch.qos.logback.classic.model.processor.LoggerModelHandler - Setting level of logger [org.eclipse.jetty] to INFO
+#14 13.40 05:32:40,010 |-INFO in ch.qos.logback.classic.model.processor.LoggerModelHandler - Setting level of logger [migratus] to INFO
+#14 13.40 05:32:40,010 |-INFO in ch.qos.logback.classic.model.processor.RootLoggerModelHandler - Setting level of ROOT logger to INFO
+#14 13.40 05:32:40,010 |-INFO in ch.qos.logback.core.model.processor.AppenderRefModelHandler - Attaching appender named [STDOUT] to Logger[ROOT]
+#14 13.40 05:32:40,010 |-INFO in ch.qos.logback.core.model.processor.DefaultProcessor@ef60710 - End of configuration.
+#14 13.40 05:32:40,011 |-INFO in ch.qos.logback.classic.joran.JoranConfigurator@600f5704 - Registering current configuration as safe fallback point
+#14 13.40 05:32:40,011 |-INFO in ch.qos.logback.classic.util.ContextInitializer@28bdbe88 - ch.qos.logback.classic.util.DefaultJoranConfigurator.configure() call lasted 159 milliseconds. ExecutionStatus=DO_NOT_INVOKE_NEXT_IF_ANY
+#14 13.40 
+#14 19.40 Syntax error compiling at (pet_app/api/auth/profile_selection.clj:150:1).
+#14 19.40 EOF while reading, starting at line 24
+#14 19.40 
+#14 19.40 Full report at:
+#14 19.40 /tmp/clojure-17179860230479127111.edn
+#14 19.51 Execution error (ExceptionInfo) at clojure.tools.build.tasks.compile-clj/compile-clj (compile_clj.clj:114).
+#14 19.51 Clojure compilation failed, working dir preserved: /tmp/compile-clj3830981748307233280
+#14 19.51 
+#14 19.51 Full report at:
+#14 19.51 /tmp/clojure-10986945797711517620.edn
+#14 ERROR: process "/bin/sh -c clojure -T:build uber" did not complete successfully: exit code: 1
+------
+ > [api builder 8/8] RUN clojure -T:build uber:
+19.40 Syntax error compiling at (pet_app/api/auth/profile_selection.clj:150:1).
+19.40 EOF while reading, starting at line 24
+19.40 
+19.40 Full report at:
+19.40 /tmp/clojure-17179860230479127111.edn
+19.51 Execution error (ExceptionInfo) at clojure.tools.build.tasks.compile-clj/compile-clj (compile_clj.clj:114).
+19.51 Clojure compilation failed, working dir preserved: /tmp/compile-clj3830981748307233280
+19.51 
+19.51 Full report at:
+19.51 /tmp/clojure-10986945797711517620.edn
+------
+failed to solve: process 
+"/bin/sh -c clojure -T:build 
+uber" did not complete 
+successfully: exit code: 1

@@ -20,6 +20,8 @@
             [pet-app.api.auth :as auth]
             [pet-app.api.auth.otp-auth :as otp-auth]
             [pet-app.api.auth.enterprise-auth :as enterprise-auth]
+            [pet-app.api.auth.invite-auth :as invite-auth]
+            [pet-app.api.auth.profile-selection :as profile-selection]
             [pet-app.api.middleware :as middleware]
             [pet-app.api.commands.wallet-commands :as wallet-commands]
             [pet-app.api.queries.wallet-queries :as wallet-queries]))
@@ -173,8 +175,17 @@
           {:post {:summary "Request OTP for phone authentication"
                   :handler (partial otp-auth/request-otp {:ds db})}}]
          ["/verify"
-          {:post {:summary "Verify OTP and get JWT token"
+          {:post {:summary "Verify OTP and return available profiles"
                   :handler (partial otp-auth/verify-otp {:ds db})}}]]
+
+        ;; Profile Selection (after OTP verification)
+        ["/select-profile"
+         {:post {:summary "Select profile after OTP verification"
+                 :handler (partial profile-selection/select-profile {:ds db})}}]
+
+        ["/create-client"
+         {:post {:summary "Create new client profile"
+                 :handler (partial profile-selection/create-client-profile {:ds db})}}]
 
         ;; Client endpoints (authenticated)
         ["/client"
@@ -214,6 +225,35 @@
                                middleware/require-authentication
                                middleware/wrap-authentication)}}]]]
 
+        ;; ============================================
+        ;; Invite System (Partnership requests)
+        ;; ============================================
+        ["/invites"
+         ["/request"
+          {:post {:summary "Request a partnership invite"
+                  :handler (partial invite-auth/request-invite {:ds db})}}]
+         ["/validate"
+          {:post {:summary "Validate an invite code"
+                  :handler (partial invite-auth/validate-invite-code {:ds db})}}]
+         ["/pending"
+          {:get {:summary "List pending invite requests (MASTER only)"
+                 :handler (-> (partial invite-auth/list-pending-invites {:ds db})
+                              middleware/require-platform-admin
+                              middleware/require-authentication
+                              middleware/wrap-authentication)}}]
+         ["/:id/approve"
+          {:post {:summary "Approve invite request (MASTER only)"
+                  :handler (-> (partial invite-auth/approve-invite {:ds db})
+                               middleware/require-platform-admin
+                               middleware/require-authentication
+                               middleware/wrap-authentication)}}]
+         ["/:id/reject"
+          {:post {:summary "Reject invite request (MASTER only)"
+                  :handler (-> (partial invite-auth/reject-invite {:ds db})
+                               middleware/require-platform-admin
+                               middleware/require-authentication
+                               middleware/wrap-authentication)}}]]
+
        ;; ============================================
        ;; Wallet Routes
        ;; ============================================
@@ -242,10 +282,6 @@
                :handler (-> (partial wallet-queries/get-enterprise-wallet {:db db})
                             middleware/require-authentication
                             middleware/wrap-authentication)}}]
-
-       ;; ============================================
-       ;; User Pets (authenticated users)
-       ;; ============================================
 
        ;; ============================================
        ;; User Pets (authenticated users)
