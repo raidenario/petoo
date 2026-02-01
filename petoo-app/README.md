@@ -1,104 +1,78 @@
-# 🐾 Petoo - App de Gestão Pet
+# 📱 Petoo App
 
-Um aplicativo React Native elegante e moderno para gestão de serviços pet, incluindo **Hotel Pet** e **Banho & Tosa**.
+App mobile do Petoo desenvolvido em **React Native** com **Expo**.
 
-## ✨ Características
-
-### 🏨 Hotel Pet
-- Design pastel chique com tons de marrom, branco e bege
-- Interface elegante com sombras suaves
-- Cards de serviços interativos
-- Informações sobre hospedagem, alimentação, recreação e assistência veterinária
-- Botões de ação para reservas e contato
-
-### 🛁 Banho & Tosa
-- Em desenvolvimento
-
-## 🎨 Design
-
-O app foi desenvolvido com foco em:
-- **Fofura e Chiqueza**: Design premium com tons pastéis
-- **Sombras Elegantes**: Cards com sombras suaves para profundidade
-- **Gradientes Suaves**: Backgrounds com gradientes harmoniosos
-- **Interatividade**: Efeitos hover e transições suaves
-- **Ícones Modernos**: Uso de Ionicons para uma interface limpa
-
-## 🚀 Como Executar
+## 🚀 Quick Start
 
 ### Pré-requisitos
-- Node.js instalado
-- Expo Go app no seu celular (disponível na App Store/Play Store)
+
+- Node.js 18+
+- [Expo Go](https://expo.dev/client) no seu dispositivo
 
 ### Instalação
 
-1. As dependências já foram instaladas, mas se precisar reinstalar:
 ```bash
+# Instalar dependências
 npm install
-```
 
-2. Inicie o servidor de desenvolvimento:
-```bash
+# Iniciar servidor de desenvolvimento
 npx expo start
 ```
 
-3. Escaneie o QR code com:
-   - **iOS**: Câmera do iPhone
-   - **Android**: App Expo Go
+### Conectar ao Backend
 
-## 📱 Navegação
+1. Certifique-se que o backend está rodando (`docker compose up -d` na raiz)
+2. Atualize o IP em `src/services/api.js`:
 
-- **Tela Inicial**: Escolha entre Hotel Pet ou Banho & Tosa
-- **Hotel Pet**: Visualize serviços, faça reservas e entre em contato
-- **Banho & Tosa**: Em desenvolvimento
-
-## 🎨 Paleta de Cores
-
-### Hotel Pet
-- Primária: `#8B6F47` (Marrom)
-- Secundária: `#A0826D` (Marrom claro)
-- Background: Gradiente de `#F5EBE0` → `#E3D5CA` → `#D6CCC2`
-- Cards: `#FFFFFF` com sombras suaves
-
-### Banho & Tosa
-- Primária: `#5A8FA8` (Azul)
-- Background: Gradiente de `#E8F4F8` → `#D4E9F0` → `#C0DEE8`
-
-## 📂 Estrutura do Projeto
-
-```
-petoo-app/
-├── src/
-│   ├── screens/
-│   │   ├── HomeScreen.js          # Tela inicial
-│   │   ├── HotelPetScreen.js      # Tela do Hotel Pet
-│   │   └── BanhoTosaScreen.js     # Tela do Banho & Tosa
-│   ├── navigation/
-│   │   └── AppNavigator.js        # Configuração de rotas
-│   └── components/                # Componentes reutilizáveis (futuro)
-├── assets/
-│   ├── hotel-pet-logo.png
-│   └── banho-tosa-logo.png
-└── App.js                         # Arquivo principal
+```javascript
+const BASE_URL = 'http://SEU_IP:3000/api/v1';
 ```
 
-## 🔮 Próximos Passos
+> 💡 Use o IP da sua máquina na rede local (ex: `192.168.1.100`)
 
-- [ ] Implementar tela de Banho & Tosa
-- [ ] Adicionar sistema de reservas
-- [ ] Criar formulários de agendamento
-- [ ] Integrar com backend
-- [ ] Adicionar autenticação de usuários
-- [ ] Sistema de notificações
-- [ ] Galeria de fotos dos pets
+## 📂 Estrutura
 
-## 🛠️ Tecnologias
+```
+src/
+├── components/     # Componentes reutilizáveis
+├── constants/      # Cores e constantes
+├── context/        # Auth & Theme contexts
+├── navigation/     # React Navigation config
+├── screens/        # Telas do app
+│   ├── auth/       # Login, Registro, OTP
+│   └── *.js        # Home, Profile, etc
+└── services/       # API client
+```
 
-- **React Native** - Framework mobile
-- **Expo** - Plataforma de desenvolvimento
-- **React Navigation** - Navegação entre telas
-- **Expo Linear Gradient** - Gradientes suaves
-- **Ionicons** - Biblioteca de ícones
+## 🎨 Telas Principais
+
+| Tela | Descrição |
+|------|-----------|
+| **AuthSelect** | Seleção de tipo de acesso |
+| **Login** | Login via OTP (SMS) |
+| **Home** | Tela principal com serviços |
+| **HotelPet** | Listagem de hotéis |
+| **HotelPetBooking** | Reserva de hospedagem |
+| **MyPets** | Gestão de pets |
+| **Profile** | Perfil do usuário |
+
+## 🛠️ Scripts
+
+```bash
+npm start        # Inicia Expo
+npm run android  # Build Android
+npm run ios      # Build iOS
+npm run web      # Inicia versão web
+```
+
+## 📦 Dependências Principais
+
+- `expo` - Plataforma de desenvolvimento
+- `react-navigation` - Navegação
+- `expo-linear-gradient` - Gradientes
+- `@expo/vector-icons` - Ícones
+- `@react-native-async-storage` - Storage local
 
 ---
 
-Desenvolvido com 💙 e 🐾 para pets felizes!
+Veja o [README principal](../README.md) para mais informações sobre o projeto completo.
