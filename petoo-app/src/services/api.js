@@ -4,7 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 // Configuration
 // ============================================
 // USANDO O IP DA SUA MÁQUINA para acesso via celular/emulador
-const BASE_URL = 'http://192.168.15.2:3000/api/v1';
+const BASE_URL = 'http://192.168.15.24:3000/api/v1';
 
 const TOKEN_KEY = '@petoo_token';
 const USER_KEY = '@petoo_user';
@@ -90,10 +90,16 @@ export const apiRequest = async (endpoint, method = 'GET', body = null, options 
     };
 
     if (body && (method === 'POST' || method === 'PUT')) {
-        config.body = JSON.stringify(body);
+        // Garantir que o body é um objeto válido e serializar corretamente
+        try {
+            const serialized = JSON.stringify(body);
+            config.body = serialized;
+            console.log(`[API] ${method} ${endpoint}`, serialized.substring(0, 200));
+        } catch (error) {
+            console.error('[API] Error serializing body:', error);
+            throw new Error('Invalid request body');
+        }
     }
-
-    console.log(`[API] ${method} ${endpoint}`, body ? JSON.stringify(body).substring(0, 100) : '');
 
     try {
         const response = await fetch(url, config);

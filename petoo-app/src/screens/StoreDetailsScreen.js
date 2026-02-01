@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
     View,
     Text,
@@ -12,9 +12,12 @@ import {
     Animated,
     Modal,
     ScrollView,
+    ActivityIndicator,
+    Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../constants/colors';
+import { getEnterpriseServices } from '../services/api';
 
 const { width, height } = Dimensions.get('window');
 const HEADER_HEIGHT = 350;
@@ -32,13 +35,46 @@ export default function StoreDetailsScreen({ navigation, route }) {
 
     const [cardHeight, setCardHeight] = useState(180);
     const [servicesHeight, setServicesHeight] = useState(0);
+    const [services, setServices] = useState([]);
+    const [servicesLoading, setServicesLoading] = useState(true);
 
-    const SERVICES = [
-        { id: '1', title: 'Hospedagem Comum', price: 'R$ 80,00', description: 'Pernoite em ambiente controlado e seguro.' },
-        { id: '2', title: 'Hospedagem VIP', price: 'R$ 120,00', description: 'Quarto individual com câmera 24h.' },
-        { id: '3', title: 'Day Care', price: 'R$ 50,00', description: 'Diversão e socialização durante o dia.' },
-        { id: '4', title: 'Day Care', price: 'R$ 50,00', description: 'Diversão e socialização durante o dia.' },
-    ];
+    useEffect(() => {
+        loadServices();
+    }, []);
+
+    const loadServices = async () => {
+        if (!store?.id) {
+            setServicesLoading(false);
+            return;
+        }
+
+        try {
+            const response = await getEnterpriseServices(store.id);
+            // A resposta pode ser um array ou um objeto com services
+            const servicesList = Array.isArray(response) ? response : (response.services || []);
+            
+            // Mapear os serviços da API para o formato esperado pela UI
+            const mappedServices = servicesList.map(service => ({
+                id: service.id,
+                title: service.name || service.title,
+                name: service.name,
+                price: service.price_cents 
+                    ? `R$ ${(service.price_cents / 100).toFixed(2).replace('.', ',')}` 
+                    : 'R$ --',
+                price_cents: service.price_cents,
+                description: service.description || service.notes || 'Serviço disponível',
+            }));
+            
+            setServices(mappedServices);
+        } catch (error) {
+            console.error('Error loading services:', error);
+            // Em caso de erro, manter array vazio ou mostrar mensagem
+            Alert.alert('Aviso', 'Não foi possível carregar os serviços. Tente novamente.');
+            setServices([]);
+        } finally {
+            setServicesLoading(false);
+        }
+    };
 
     const headerTranslateY = scrollY.interpolate({
         inputRange: [0, STICKY_THRESHOLD],
@@ -134,30 +170,40 @@ export default function StoreDetailsScreen({ navigation, route }) {
 
                 <View style={styles.mainSheet} pointerEvents="auto">
                     <Text style={styles.servicesTitle}>Serviços Disponíveis</Text>
-                    <ScrollView
-                        style={styles.servicesSection}
-                        showsVerticalScrollIndicator={false}
-                        nestedScrollEnabled={true}
-                        onLayout={(e) => setServicesHeight(e.nativeEvent.layout.height)}
-                    >
-                        {SERVICES.map(service => (
-                            <TouchableOpacity
-                                key={service.id}
-                                style={[styles.serviceCard, { backgroundColor: `${store.brandColor}0D`, borderColor: `${store.brandColor}15` }]}
-                                onPress={() => {
-                                    const screen = store.category === 'Hoteis' ? 'HotelPetBooking' : 'GroomingBooking';
-                                    navigation.navigate(screen, { store, service });
-                                }}
-                            >
-                                <View style={{ flex: 1 }}>
-                                    <Text style={styles.serviceName}>{service.title}</Text>
-                                    <Text style={[styles.serviceDesc, { color: `${store.brandColor}99` }]}>{service.description}</Text>
-                                    <Text style={[styles.servicePrice, { color: store.brandColor }]}>{service.price}</Text>
-                                </View>
-                                <View style={[styles.addButton, { backgroundColor: `${store.brandColor}15` }]}><Ionicons name="add" size={24} color={store.brandColor} /></View>
-                            </TouchableOpacity>
-                        ))}
-                    </ScrollView>
+                    {servicesLoading ? (
+                        <View style={{ padding: 40, alignItems: 'center' }}>
+                            <ActivityIndicator size="large" color={store.brandColor} />
+                        </View>
+                    ) : services.length === 0 ? (
+                        <View style={{ padding: 40, alignItems: 'center' }}>
+                            <Text style={{ color: COLORS.TEXT_MUTED }}>Nenhum serviço disponível no momento.</Text>
+                        </View>
+                    ) : (
+                        <ScrollView
+                            style={styles.servicesSection}
+                            showsVerticalScrollIndicator={false}
+                            nestedScrollEnabled={true}
+                            onLayout={(e) => setServicesHeight(e.nativeEvent.layout.height)}
+                        >
+                            {services.map(service => (
+                                <TouchableOpacity
+                                    key={service.id}
+                                    style={[styles.serviceCard, { backgroundColor: `${store.brandColor}0D`, borderColor: `${store.brandColor}15` }]}
+                                    onPress={() => {
+                                        const screen = store.category === 'Hoteis' ? 'HotelPetBooking' : 'GroomingBooking';
+                                        navigation.navigate(screen, { store, service });
+                                    }}
+                                >
+                                    <View style={{ flex: 1 }}>
+                                        <Text style={styles.serviceName}>{service.title}</Text>
+                                        <Text style={[styles.serviceDesc, { color: `${store.brandColor}99` }]}>{service.description}</Text>
+                                        <Text style={[styles.servicePrice, { color: store.brandColor }]}>{service.price}</Text>
+                                    </View>
+                                    <View style={[styles.addButton, { backgroundColor: `${store.brandColor}15` }]}><Ionicons name="add" size={24} color={store.brandColor} /></View>
+                                </TouchableOpacity>
+                            ))}
+                        </ScrollView>
+                    )}
                     <View style={{ height: 150 }} />
                 </View>
             </Animated.View>

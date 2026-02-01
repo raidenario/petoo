@@ -265,9 +265,9 @@
                                     :service-id [:cast (:service-id body) :uuid]
                                     :professional-id (when (:professional-id body)
                                                        [:cast (:professional-id body) :uuid])
-                                    :start-time (:start-time body)
+                                    :start-time [:cast (:start-time body) :timestamptz]
                                     :end-time (if (:end-time body)
-                                                (:end-time body)
+                                                [:cast (:end-time body) :timestamptz]
                                                 [:+ [:cast (:start-time body) :timestamptz]
                                                  [:* duration-minutes [:interval "1 minute"]]])
                                     :status "PENDING"

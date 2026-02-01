@@ -17,6 +17,9 @@
 (defn- not-found [data]
   {:status 404 :body data})
 
+(defn- server-error [data]
+  {:status 500 :body data})
+
 ;; ============================================
 ;; POST /api/v1/auth/select-profile
 ;; ============================================
@@ -99,7 +102,7 @@
 
         (catch Exception e
           (log/error e "Failed to select profile for phone:" phone)
-          {:status 500 :body {:error "Failed to select profile"}})))))
+          (server-error {:error "Failed to select profile"}))))))
 
 ;; ============================================
 ;; POST /api/v1/auth/create-client
@@ -146,4 +149,5 @@
 
         (catch Exception e
           (log/error e "Failed to create client profile for phone:" phone)
-          {:status 500 :body {:error "Failed to create client profile"}})))))
+          (server-error {:error "Failed to create client profile"
+                         :message (.getMessage e)}))))))

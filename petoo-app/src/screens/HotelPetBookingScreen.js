@@ -14,7 +14,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../constants/colors';
-import { api } from '../services/api';
+import { getClientPets, createAppointment } from '../services/api';
 
 const { width } = Dimensions.get('window');
 
@@ -55,8 +55,9 @@ export default function HotelPetBookingScreen({ navigation, route }) {
 
     const loadPets = async () => {
         try {
-            const response = await api.getClientPets();
-            const petList = response.pets || [];
+            const response = await getClientPets();
+            // Response can be an array directly or wrapped in an object
+            const petList = Array.isArray(response) ? response : (response.pets || []);
             setPets(petList);
             if (petList.length > 0) {
                 setSelectedPetId(petList[0].id);
@@ -103,18 +104,30 @@ export default function HotelPetBookingScreen({ navigation, route }) {
 
         setLoading(true);
         try {
+            // Validar que todos os dados necessários estão presentes
+            if (!store?.id || !service?.id || !selectedPetId) {
+                Alert.alert('Erro', 'Dados incompletos para realizar a reserva.');
+                setLoading(false);
+                return;
+            }
+
             // Assumindo horário padrão para check-in (14h) e check-out (12h)
             const startDateTime = `${checkIn}T14:00:00Z`;
             const endDateTime = `${checkOut}T12:00:00Z`;
 
-            await api.createAppointment({
-                enterprise_id: store.id,
-                service_id: service.id,
-                pet_id: selectedPetId,
-                start_time: startDateTime,
-                end_time: endDateTime,
-                notes: `Reserva de Hotel - ${service.name}`
-            });
+            // Criar objeto com chaves kebab-case corretamente formatadas
+            // Remover qualquer valor undefined/null antes de enviar
+            const appointmentData = {};
+            if (store.id) appointmentData['enterprise-id'] = store.id;
+            if (service.id) appointmentData['service-id'] = service.id;
+            if (selectedPetId) appointmentData['pet-id'] = selectedPetId;
+            if (startDateTime) appointmentData['start-time'] = startDateTime;
+            if (endDateTime) appointmentData['end-time'] = endDateTime;
+            if (service.name) appointmentData.notes = `Reserva de Hotel - ${service.name}`;
+
+            console.log('Creating appointment with data:', JSON.stringify(appointmentData, null, 2));
+            
+            await createAppointment(appointmentData);
 
             Alert.alert(
                 'Reserva Solicitada!',

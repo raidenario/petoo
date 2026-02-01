@@ -175,11 +175,37 @@ export default function VerificationScreen({ navigation, route }) {
                     const profile = profiles[0];
                     const selectResponse = await apiRequest('/auth/select-profile', 'POST', {
                         phone: phoneNumber,
-                        profile_type: profile.type,
-                        enterprise_id: profile.enterpriseId
+                        'profile-type': profile.type,
+                        'enterprise-id': profile.enterpriseId || profile.enterprise_id
                     });
 
-                    await login(selectResponse);
+                    // Transform select-profile response to login format
+                    const authData = {
+                        token: selectResponse.token,
+                        profiles: [selectResponse.profile]
+                    };
+
+                    // Add client or user data based on profile type
+                    if (selectResponse.profile.type === 'CLIENT') {
+                        authData.client = {
+                            id: selectResponse.profile.id,
+                            name: selectResponse.profile.name,
+                            email: selectResponse.profile.email,
+                            phone: phoneNumber,
+                            avatar_url: selectResponse.profile['avatar-url'] || selectResponse.profile.avatar_url
+                        };
+                    } else {
+                        authData.user = {
+                            id: selectResponse.profile.id,
+                            name: selectResponse.profile.name,
+                            email: selectResponse.profile.email,
+                            enterprise_id: selectResponse.profile['enterprise-id'] || selectResponse.profile.enterprise_id,
+                            enterprise_name: selectResponse.profile['enterprise-name'] || selectResponse.profile.enterprise_name,
+                            enterprise_slug: selectResponse.profile['enterprise-slug'] || selectResponse.profile.enterprise_slug
+                        };
+                    }
+
+                    await login(authData);
 
                     // Navigate based on profile type
                     if (profile.type === 'CLIENT') {
