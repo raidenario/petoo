@@ -1,0 +1,50 @@
+meta {
+  name: Get Transaction History
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{base_url}}/api/v1/wallet/transactions?limit=20&offset=0
+  body: none
+  auth: bearer
+}
+
+params:query {
+  limit: 20
+  offset: 0
+}
+
+auth:bearer {
+  token: {{auth_token}}
+}
+
+docs {
+  # Get Transaction History
+  
+  Retrieves the authenticated user's wallet transaction history.
+  
+  **Authentication:** Required (Bearer token)
+  
+  **Query Parameters:**
+  - `limit` (optional): Number of transactions to return (default: 20)
+  - `offset` (optional): Pagination offset (default: 0)
+  
+  **Response:**
+  ```json
+  {
+    "transactions": [
+      {
+        "id": "uuid",
+        "amount_cents": 10000,
+        "type": "DEPOSIT",
+        "status": "PAID",
+        "description": "Wallet Deposit",
+        "created_at": "2024-01-31T08:00:00Z"
+      }
+    ],
+    "limit": 20,
+    "offset": 0
+  }
+  ```
+}

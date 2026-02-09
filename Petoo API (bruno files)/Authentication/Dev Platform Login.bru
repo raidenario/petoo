@@ -1,0 +1,52 @@
+meta {
+  name: Dev Platform Login
+  type: http
+  seq: 0
+}
+
+get {
+  url: {{base_url}}/api/v1/auth/dev-platform-login
+  body: none
+  auth: none
+}
+
+script:post-response {
+  if (res.getStatus() === 200) {
+      const jsonData = res.getBody();
+      if (jsonData.token) {
+          bru.setEnvVar('auth_token', jsonData.token);
+          bru.setVar('auth_token', jsonData.token);
+          console.log('✅ Token PLATFORM saved! You can now create enterprises.');
+          console.log('Token preview:', jsonData.token.substring(0, 30) + '...');
+      }
+  }
+}
+
+docs {
+  # Dev Platform Login (FIRST STEP!)
+  
+  **⚠️ DEVELOPMENT ONLY**
+  
+  Generates a JWT token with PLATFORM role (PETOO super admin) instantly without password.
+  
+  **No authentication required** - this is a dev endpoint.
+  
+  **Use this first to:**
+  1. Create new Enterprises via `/auth/enterprise/register`
+  2. Test platform administrator permissions
+  
+  **Response:**
+  ```json
+  {
+    "token": "eyJ...",
+    "user": {
+      "id": "00000000-0000-4000-a000-000000000000",
+      "email": "petoo@petoo.com.br",
+      "name": "PETOO Platform Admin",
+      "role": "PLATFORM"
+    }
+  }
+  ```
+  
+  **Next step:** Use the saved token to call `POST /auth/enterprise/register`
+}

@@ -2,8 +2,7 @@
   "Authentication and authorization middleware for Ring handlers."
   (:require [pet-app.infra.auth :as auth]
             [clojure.tools.logging :as log]
-            [clojure.string :as str]
-            [ring.util.response :as response]))
+            [clojure.string :as str]))
 
 ;; ============================================
 ;; Authentication Middleware

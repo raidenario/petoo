@@ -1,16 +1,29 @@
 (ns pet-app.api.commands.helpers
-  "Helper functions for Command API handlers."
-  (:require [clojure.data.json :as json])
+  "Utility functions for Command API handlers.
+   
+   For response helpers (ok, bad-request, error, etc.), use pet-app.api.helpers."
+  (:require [clojure.data.json :as json]
+            [pet-app.api.helpers :as resp])
   (:import [java.util UUID]
            [java.time Instant Duration]))
 
-(defn ->json [data]
+;; ============================================
+;; Utility Functions
+;; ============================================
+
+(defn ->json
+  "Serialize data to JSON string."
+  [data]
   (json/write-str data))
 
-(defn uuid []
+(defn uuid
+  "Generate a random UUID string."
+  []
   (str (UUID/randomUUID)))
 
-(defn now []
+(defn now
+  "Current ISO-8601 timestamp string."
+  []
   (str (Instant/now)))
 
 (defn calculate-end-time
@@ -20,24 +33,10 @@
         end (.plus start (Duration/ofMinutes duration-minutes))]
     (str end)))
 
-(defn response-accepted
-  "Return 202 Accepted with resource id."
-  [id & {:keys [message]}]
-  {:status 202
-   :body {:accepted true
-          :id id
-          :message (or message "Request accepted for processing")}})
+;; ============================================
+;; Response Aliases (backward compat, prefer pet-app.api.helpers)
+;; ============================================
 
-(defn response-bad-request
-  "Return 400 Bad Request with validation errors."
-  [errors]
-  {:status 400
-   :body {:error "Validation failed"
-          :details errors}})
-
-(defn response-error
-  "Return 500 Internal Server Error."
-  [message]
-  {:status 500
-   :body {:error "Internal server error"
-          :message message}})
+(def response-accepted resp/accepted)
+(def response-bad-request resp/bad-request)
+(def response-error resp/error)

@@ -5,29 +5,9 @@
    - POST /api/v1/auth/otp/request - Request OTP
    - POST /api/v1/auth/otp/verify  - Verify OTP and get JWT"
   (:require [pet-app.infra.otp :as otp]
-            [pet-app.infra.auth :as auth]
             [pet-app.infra.db :as db]
-            [clojure.tools.logging :as log])
-  (:import [java.util UUID]))
-
-;; ============================================
-;; Response Helpers
-;; ============================================
-
-(defn- response-ok [data]
-  {:status 200 :body data})
-
-(defn- response-created [data]
-  {:status 201 :body data})
-
-(defn- response-bad-request [error]
-  {:status 400 :body {:error "Bad Request" :message error}})
-
-(defn- response-unauthorized [error]
-  {:status 401 :body {:error "Unauthorized" :message error}})
-
-(defn- response-error [error]
-  {:status 500 :body {:error "Internal Server Error" :message error}})
+            [pet-app.api.helpers :refer [ok bad-request unauthorized error]]
+            [clojure.tools.logging :as log]))
 
 ;; ============================================
 ;; Phone Validation
@@ -58,11 +38,11 @@
     (cond
       ;; Validar que phone foi fornecido
       (nil? phone)
-      (response-bad-request "Phone number is required")
+      (bad-request "Phone number is required")
 
       ;; Validar formato do telefone
       (not (valid-phone? phone))
-      (response-bad-request "Invalid phone number format. Use E.164 format (e.g., +5511999998888)")
+      (bad-request "Invalid phone number format. Use E.164 format (e.g., +5511999998888)")
 
       :else
       (try
@@ -74,7 +54,7 @@
               ;; Ambiente de desenvolvimento?
               is-dev? (not= (System/getenv "ENV") "production")]
 
-          (response-ok
+          (ok
            (cond-> {:message "OTP sent successfully"
                     :expires-in-seconds 300}
              ;; Em dev, retornar token para facilitar testes
@@ -83,7 +63,7 @@
 
         (catch Exception e
           (log/error e "Failed to send OTP to" phone)
-          (response-error "Failed to send OTP"))))))
+          (error "Failed to send OTP"))))))
 
 ;; ============================================
 ;; POST /api/v1/auth/otp/verify
@@ -107,22 +87,22 @@
     (cond
       ;; Validar campos obrigatórios
       (nil? phone)
-      (response-bad-request "Phone number is required")
+      (bad-request "Phone number is required")
 
       (nil? token)
-      (response-bad-request "Token is required")
+      (bad-request "Token is required")
 
       (not (valid-phone? phone))
-      (response-bad-request "Invalid phone number format")
+      (bad-request "Invalid phone number format")
 
       (not= 6 (count (str token)))
-      (response-bad-request "Token must be 6 digits")
+      (bad-request "Token must be 6 digits")
 
       :else
       ;; Verificar OTP
       (let [result (otp/verify-otp-token ds phone (str token))]
         (if-not (:valid? result)
-          (response-unauthorized (:error result))
+          (unauthorized (:error result))
 
           ;; OTP válido - buscar todos os perfis disponíveis
           (try
@@ -164,14 +144,14 @@
               (log/info "OTP verified for phone:" phone 
                         "- Found" (count profiles) "profile(s)")
 
-              (response-ok
+              (ok
                {:profiles (vec profiles)
                 :needs-selection (> (count profiles) 1)
                 :phone phone}))
 
             (catch Exception e
               (log/error e "Failed to fetch profiles for phone:" phone)
-              (response-error "Authentication failed"))))))))
+              (error "Authentication failed"))))))))
 
 ;; ============================================
 ;; GET /api/v1/auth/client/me
@@ -182,9 +162,9 @@
    
    Requer token de Client no header Authorization."
   [{:keys [ds]} request]
-  (let [client-id (:client-id request)]
+    (let [client-id (:client-id request)]
     (if-not client-id
-      (response-unauthorized "Client authentication required")
+      (unauthorized "Client authentication required")
 
       (try
         (let [client (db/execute-one! ds
@@ -201,17 +181,17 @@
                                                [:= :owner-id [:cast client-id :uuid]]
                                                [:= :owner-type "USER"]]})]
           (if client
-            (response-ok {:client (update client :id str)
-                          :wallet (when wallet
-                                    {:id (str (:id wallet))
-                                     :balance_cents (:balance-cents wallet)
-                                     :pending_cents (:pending-cents wallet)
-                                     :updated_at (:updated-at wallet)})})
-            (response-unauthorized "Client not found")))
+            (ok {:client (update client :id str)
+                 :wallet (when wallet
+                           {:id (str (:id wallet))
+                            :balance_cents (:balance-cents wallet)
+                            :pending_cents (:pending-cents wallet)
+                            :updated_at (:updated-at wallet)})})
+            (unauthorized "Client not found")))
 
         (catch Exception e
           (log/error e "Failed to get client:" client-id)
-          (response-error "Failed to get client info"))))))
+          (error "Failed to get client info"))))))
 
 ;; ============================================
 ;; PUT /api/v1/auth/client/me
@@ -227,7 +207,7 @@
   (let [client-id (:client-id request)
         {:keys [name email latitude longitude]} (:body-params request)]
     (if-not client-id
-      (response-unauthorized "Client authentication required")
+      (unauthorized "Client authentication required")
 
       (try
         (let [update-data (cond-> {}
@@ -245,8 +225,8 @@
                                                         :avatar-url :latitude :longitude]
                                                :from :core.clients
                                                :where [:= :id [:cast client-id :uuid]]})]
-          (response-ok {:client (update updated-client :id str)}))
+          (ok {:client (update updated-client :id str)}))
 
         (catch Exception e
           (log/error e "Failed to update client:" client-id)
-          (response-error "Failed to update profile"))))))
+          (error "Failed to update profile"))))))

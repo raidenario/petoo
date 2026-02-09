@@ -1,42 +1,14 @@
 (ns pet-app.api.auth
-  "Authentication API handlers.
+  "Authentication API handlers (LEGACY).
+   
+   DEPRECATED: These endpoints are kept for backward compatibility.
+   New code should use pet-app.api.auth.otp-auth or pet-app.api.auth.enterprise-auth.
    
    Provides login endpoint and authentication middleware."
   (:require [pet-app.domain.schemas :as schemas]
             [pet-app.infra.auth :as auth]
-            [pet-app.infra.db :as db]
+            [pet-app.api.helpers :refer [ok unauthorized bad-request error]]
             [clojure.tools.logging :as log]))
-
-;; ============================================
-;; Request/Response Helpers
-;; ============================================
-
-(defn- response-ok
-  "Return 200 OK with data."
-  [data]
-  {:status 200
-   :body data})
-
-(defn- response-unauthorized
-  "Return 401 Unauthorized."
-  [message]
-  {:status 401
-   :body {:error "Unauthorized"
-          :message message}})
-
-(defn- response-bad-request
-  "Return 400 Bad Request with validation errors."
-  [errors]
-  {:status 400
-   :body {:error "Validation failed"
-          :details errors}})
-
-(defn- response-error
-  "Return 500 Internal Server Error."
-  [message]
-  {:status 500
-   :body {:error "Internal server error"
-          :message message}})
 
 ;; ============================================
 ;; Schemas
@@ -66,7 +38,7 @@
         validation (schemas/validate LoginRequest body)]
 
     (if-not (:valid? validation)
-      (response-bad-request (:errors validation))
+      (bad-request (:errors validation))
 
       (try
         (let [{:keys [phone password]} body
@@ -78,7 +50,7 @@
                          (:enterprise-id user)
                          (:phone user)
                          (:role user))]
-              (response-ok
+              (ok
                {:token token
                 :user {:id (:id user)
                        :email (:email user)
@@ -87,11 +59,11 @@
                        :role (:role user)
                        :enterprise-id (:enterprise-id user)}}))
 
-            (response-unauthorized "Invalid phone or password")))
+            (unauthorized "Invalid phone or password")))
 
         (catch Exception e
           (log/error e "Login failed")
-          (response-error (.getMessage e)))))))
+          (error (.getMessage e)))))))
 
 ;; ============================================
 ;; GET /api/v1/auth/me
@@ -103,8 +75,8 @@
    Requires authentication middleware to extract user from request."
   [{:keys [user]} _request]
   (if user
-    (response-ok {:user user})
-    (response-unauthorized "Not authenticated")))
+    (ok {:user user})
+    (unauthorized "Not authenticated")))
 
 
 ;; ============================================
@@ -121,11 +93,11 @@
                  nil                                  ;; Platform Admin não tem enterprise-id
                  "petoo@petoo.com.br"
                  "PLATFORM")]
-      (response-ok
+      (ok
        {:token token
         :user {:id "00000000-0000-4000-a000-000000000000"
                :email "petoo@petoo.com.br"
                :name "PETOO Platform Admin"
                :role "PLATFORM"}}))
     (catch Exception e
-      (response-error (.getMessage e)))))
+      (error (.getMessage e)))))

@@ -1,20 +1,9 @@
 (ns pet-app.api.auth.invite-auth
   (:require [pet-app.infra.db :as db]
+            [pet-app.api.helpers :refer [ok bad-request not-found]]
+            [clojure.string :as str]
             [clojure.tools.logging :as log]
             [crypto.random :refer [hex]]))
-
-;; ============================================
-;; Response Helpers
-;; ============================================
-
-(defn- ok [data]
-  {:status 200 :body data})
-
-(defn- bad-request [data]
-  {:status 400 :body data})
-
-(defn- not-found [data]
-  {:status 404 :body data})
 
 ;; ============================================
 ;; Handlers
@@ -65,7 +54,7 @@
       (let [result (db/execute-one! ds
                      {:update :core.invite_requests
                       :set {:status "APPROVED"
-                            :invite_code (clojure.string/upper-case invite-code)
+                            :invite_code (str/upper-case invite-code)
                             :approved_by [:cast user-id :uuid]
                             :approved_at [:now]}
                       :where [:= :id [:cast id :uuid]]})]
@@ -100,12 +89,12 @@
   [{:keys [ds]} request]
   (let [code (get-in request [:body-params :code])]
     (try
-      (if (and code (not (clojure.string/blank? code)))
+      (if (and code (not (str/blank? code)))
         (let [invite (db/execute-one! ds
                        {:select [:*]
                         :from [:core.invite_requests]
                         :where [:and 
-                                [:= :invite_code (clojure.string/upper-case code)]
+                                [:= :invite_code (str/upper-case code)]
                                 [:= :status "APPROVED"]]})]
           (if invite
             (ok {:valid true

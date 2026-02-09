@@ -2,23 +2,8 @@
   "Profile selection after OTP verification for multi-profile users."
   (:require [pet-app.infra.db :as db]
             [pet-app.infra.auth :as auth]
+            [pet-app.api.helpers :refer [ok bad-request not-found error]]
             [clojure.tools.logging :as log]))
-
-;; ============================================
-;; Response Helpers
-;; ============================================
-
-(defn- ok [data]
-  {:status 200 :body data})
-
-(defn- bad-request [data]
-  {:status 400 :body data})
-
-(defn- not-found [data]
-  {:status 404 :body data})
-
-(defn- server-error [data]
-  {:status 500 :body data})
 
 ;; ============================================
 ;; POST /api/v1/auth/select-profile
@@ -102,7 +87,7 @@
 
         (catch Exception e
           (log/error e "Failed to select profile for phone:" phone)
-          (server-error {:error "Failed to select profile"}))))))
+          (error "Failed to select profile"))))))
 
 ;; ============================================
 ;; POST /api/v1/auth/create-client
@@ -149,5 +134,4 @@
 
         (catch Exception e
           (log/error e "Failed to create client profile for phone:" phone)
-          (server-error {:error "Failed to create client profile"
-                         :message (.getMessage e)}))))))
+          (error (str "Failed to create client profile: " (.getMessage e))))))))

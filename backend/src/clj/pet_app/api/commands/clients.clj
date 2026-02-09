@@ -6,32 +6,10 @@
    - Appointments"
   (:require [pet-app.infra.db :as db]
             [pet-app.infra.kafka :as kafka]
-            [pet-app.domain.schemas :as schemas]
+            [pet-app.api.helpers :refer [ok created bad-request forbidden not-found error]]
             [clojure.tools.logging :as log]
             [clojure.data.json :as json])
   (:import [java.util UUID]))
-
-;; ============================================
-;; Response Helpers
-;; ============================================
-
-(defn- response-ok [data]
-  {:status 200 :body data})
-
-(defn- response-created [data]
-  {:status 201 :body data})
-
-(defn- response-bad-request [error]
-  {:status 400 :body {:error "Bad Request" :message error}})
-
-(defn- response-unauthorized [error]
-  {:status 403 :body {:error "Forbidden" :message error}})
-
-(defn- response-not-found [error]
-  {:status 404 :body {:error "Not Found" :message error}})
-
-(defn- response-error [error]
-  {:status 500 :body {:error "Internal Server Error" :message error}})
 
 ;; ============================================
 ;; Pet Commands
@@ -53,7 +31,7 @@
   (let [client-id (:client-id request)
         body (:body-params request)]
     (if-not client-id
-      (response-unauthorized "Client authentication required")
+      (forbidden "Client authentication required")
 
       (try
         (let [pet-id (str (UUID/randomUUID))
@@ -87,7 +65,7 @@
 
           (log/info "Pet created:" pet-id "for client:" client-id)
 
-          (response-created
+          (created
            {:pet {:id pet-id
                   :name (:name body)
                   :species (or (:species body) "DOG")
@@ -95,7 +73,7 @@
 
         (catch Exception e
           (log/error e "Failed to create pet")
-          (response-error "Failed to create pet"))))))
+          (error "Failed to create pet"))))))
 
 (defn update-pet
   "Update an existing pet owned by the authenticated client."
@@ -104,7 +82,7 @@
         pet-id (get-in request [:path-params :id])
         body (:body-params request)]
     (if-not client-id
-      (response-unauthorized "Client authentication required")
+      (forbidden "Client authentication required")
 
       (try
         ;; Verificar propriedade
@@ -115,7 +93,7 @@
                                                      [:= :id [:cast pet-id :uuid]]
                                                      [:= :client-id [:cast client-id :uuid]]]})]
           (if-not existing-pet
-            (response-not-found "Pet not found or you don't have access")
+            (not-found "Pet not found or you don't have access")
 
             (let [update-data (cond-> {}
                                 (:name body) (assoc :name (:name body))
@@ -146,12 +124,12 @@
 
               (log/info "Pet updated:" pet-id)
 
-              (response-ok {:message "Pet updated successfully"
+              (ok {:message "Pet updated successfully"
                             :pet-id pet-id}))))
 
         (catch Exception e
           (log/error e "Failed to update pet:" pet-id)
-          (response-error "Failed to update pet"))))))
+          (error "Failed to update pet"))))))
 
 (defn delete-pet
   "Soft delete a pet owned by the authenticated client."
@@ -159,7 +137,7 @@
   (let [client-id (:client-id request)
         pet-id (get-in request [:path-params :id])]
     (if-not client-id
-      (response-unauthorized "Client authentication required")
+      (forbidden "Client authentication required")
 
       (try
         (let [result (db/execute! ds
@@ -178,12 +156,12 @@
                                     :pet-id pet-id
                                     :client-id client-id}))
               (log/info "Pet deleted:" pet-id)
-              (response-ok {:message "Pet deleted successfully"}))
-            (response-not-found "Pet not found or you don't have access")))
+              (ok {:message "Pet deleted successfully"}))
+            (not-found "Pet not found or you don't have access")))
 
         (catch Exception e
           (log/error e "Failed to delete pet:" pet-id)
-          (response-error "Failed to delete pet"))))))
+          (error "Failed to delete pet"))))))
 
 ;; ============================================
 ;; Appointment Commands (Client-initiated)
@@ -204,19 +182,19 @@
         body (:body-params request)]
     (cond
       (nil? client-id)
-      (response-unauthorized "Client authentication required")
+      (forbidden "Client authentication required")
 
       (nil? (:enterprise-id body))
-      (response-bad-request "Enterprise ID is required")
+      (bad-request "Enterprise ID is required")
 
       (nil? (:pet-id body))
-      (response-bad-request "Pet ID is required")
+      (bad-request "Pet ID is required")
 
       (nil? (:service-id body))
-      (response-bad-request "Service ID is required")
+      (bad-request "Service ID is required")
 
       (nil? (:start-time body))
-      (response-bad-request "Start time is required")
+      (bad-request "Start time is required")
 
       :else
       (try
@@ -228,7 +206,7 @@
                                             [:= :id [:cast (:pet-id body) :uuid]]
                                             [:= :client-id [:cast client-id :uuid]]]})]
           (if-not pet
-            (response-bad-request "Pet not found or doesn't belong to you")
+            (bad-request "Pet not found or doesn't belong to you")
 
             ;; Buscar duração e preço do serviço
             (let [service (db/execute-one! ds
@@ -294,7 +272,7 @@
                         "for client:" client-id
                         "payment:" payment-method)
 
-              (response-created
+              (created
                {:appointment {:id appointment-id
                               :status "PENDING"
                               :payment_method payment-method
@@ -309,7 +287,7 @@
                     :balance_cents (:balance (ex-data e))
                     :required_cents (:required (ex-data e))
                     :message "Your wallet balance is insufficient for this service"}}
-            (response-error "Failed to create appointment")))))))
+            (error "Failed to create appointment")))))))
 
 (defn cancel-appointment
   "Cancel an existing appointment."
@@ -317,7 +295,7 @@
   (let [client-id (:client-id request)
         appointment-id (get-in request [:path-params :id])]
     (if-not client-id
-      (response-unauthorized "Client authentication required")
+      (forbidden "Client authentication required")
 
       (try
         (let [result (db/execute! ds
@@ -338,9 +316,9 @@
                                     :client-id client-id
                                     :cancelled-by "client"}))
               (log/info "Appointment cancelled:" appointment-id)
-              (response-ok {:message "Appointment cancelled successfully"}))
-            (response-not-found "Appointment not found or cannot be cancelled")))
+              (ok {:message "Appointment cancelled successfully"}))
+            (not-found "Appointment not found or cannot be cancelled")))
 
         (catch Exception e
           (log/error e "Failed to cancel appointment:" appointment-id)
-          (response-error "Failed to cancel appointment"))))))
+          (error "Failed to cancel appointment"))))))

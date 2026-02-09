@@ -112,10 +112,6 @@
       {:get {:summary "Get professional schedule"
              :handler (partial queries/get-professional-schedule query-deps)}}]
 
-     ["/enterprises/:slug"
-      {:get {:summary "Get enterprise by slug (whitelabel config)"
-             :handler (partial queries/get-enterprise-by-slug query-deps)}}]
-
      ["/services"
       {:get {:summary "List services"
              :handler (partial queries/list-services query-deps)}}]
@@ -141,14 +137,6 @@
                         :handler (health-handler deps)}}]
       ["/ping" {:get {:summary "Ping"
                       :handler ping-handler}}]
-      ["/debug/headers" {:get {:summary "Debug endpoint to see headers"
-                               :handler (fn [request]
-                                          {:status 200
-                                           :body {:headers (:headers request)
-                                                  :authorization (get-in request [:headers "authorization"])
-                                                  :Authorization (get-in request [:headers "Authorization"])
-                                                  :user (:user request)}})}}]
-
       ;; API v1
       ["/api/v1"
        ;; ============================================
@@ -406,50 +394,89 @@
                              middleware/require-authentication
                              middleware/wrap-authentication)}}]
 
-       ;; Services - GET public, POST protected
+       ;; ============================================
+       ;; Services - Full CRUD
+       ;; ============================================
        ["/services"
-        {:get {:summary "List services"
+        {:get {:summary "List services (public)"
                :handler (partial queries/list-services query-deps)}
-         :post {:summary "Create new service"
+         :post {:summary "Create new service (MASTER/ADMIN)"
                 :handler (-> (partial commands/create-service cmd-deps)
                              middleware/require-master-or-admin
                              middleware/require-authentication
                              middleware/wrap-authentication)}}]
 
-       ;; Professionals - GET public, POST protected
+       ["/services/:id"
+        {:put {:summary "Update service (MASTER/ADMIN)"
+               :handler (-> (partial commands/update-service cmd-deps)
+                            middleware/require-master-or-admin
+                            middleware/require-authentication
+                            middleware/wrap-authentication)}
+         :delete {:summary "Disable service (MASTER/ADMIN)"
+                  :handler (-> (partial commands/disable-service cmd-deps)
+                               middleware/require-master-or-admin
+                               middleware/require-authentication
+                               middleware/wrap-authentication)}}]
+
+       ;; ============================================
+       ;; Professionals - Full CRUD
+       ;; ============================================
        ["/professionals"
-        {:get {:summary "List professionals"
+        {:get {:summary "List professionals (public)"
                :handler (partial queries/list-professionals query-deps)}
-         :post {:summary "Create new professional"
+         :post {:summary "Create new professional (MASTER/ADMIN)"
                 :handler (-> (partial commands/create-professional cmd-deps)
                              middleware/require-master-or-admin
                              middleware/require-authentication
                              middleware/wrap-authentication)}}]
 
+       ["/professionals/:id"
+        {:put {:summary "Update professional (MASTER/ADMIN)"
+               :handler (-> (partial commands/update-professional cmd-deps)
+                            middleware/require-master-or-admin
+                            middleware/require-authentication
+                            middleware/wrap-authentication)}
+         :delete {:summary "Deactivate professional (MASTER/ADMIN)"
+                  :handler (-> (partial commands/deactivate-professional cmd-deps)
+                               middleware/require-master-or-admin
+                               middleware/require-authentication
+                               middleware/wrap-authentication)}}]
+
        ["/professionals/:id/avatar"
-        {:post {:summary "Upload professional avatar"
+        {:post {:summary "Upload professional avatar (MASTER/ADMIN)"
                 :handler (-> (partial commands/update-professional-avatar cmd-deps)
                              middleware/require-master-or-admin
                              middleware/require-authentication
                              middleware/wrap-authentication)}}]
 
+       ;; ============================================
        ;; Schedule - GET only
+       ;; ============================================
        ["/schedule/:professional-id"
         {:get {:summary "Get professional schedule"
                :handler (partial queries/get-professional-schedule query-deps)}}]
 
-       ;; Enterprises - GET by slug, POST to create (PLATFORM ONLY)
+       ;; ============================================
+       ;; Enterprises - Full CRUD
+       ;; ============================================
        ["/enterprises"
         {:get {:summary "List all active enterprises (public)"
                :handler (partial enterprise-queries/list-all-enterprises {:db db})}
-         :post {:summary "Create new enterprise"
+         :post {:summary "Create new enterprise (PLATFORM only)"
                 :handler (-> (partial commands/create-enterprise cmd-deps)
                              middleware/require-platform-admin
                              middleware/require-authentication
                              middleware/wrap-authentication)}}]
 
+       ["/enterprises/me"
+        {:put {:summary "Update own enterprise profile (MASTER/ADMIN)"
+               :handler (-> (partial commands/update-enterprise-profile cmd-deps)
+                            middleware/require-master-or-admin
+                            middleware/require-authentication
+                            middleware/wrap-authentication)}}]
+
        ["/enterprises/:id/logo"
-        {:post {:summary "Upload enterprise logo"
+        {:post {:summary "Upload enterprise logo (MASTER/ADMIN)"
                 :handler (-> (partial commands/update-enterprise-logo cmd-deps)
                              middleware/require-master-or-admin
                              middleware/require-authentication
@@ -457,7 +484,24 @@
 
        ["/enterprises/:slug"
         {:get {:summary "Get enterprise by slug with details (public)"
-               :handler (partial enterprise-queries/get-enterprise-by-slug {:db db})}}]]]
+               :handler (partial enterprise-queries/get-enterprise-by-slug {:db db})}}]
+
+       ;; ============================================
+       ;; Enterprise Appointment Management
+       ;; ============================================
+       ["/manage/appointments/:id/cancel"
+        {:post {:summary "Cancel appointment (enterprise side)"
+                :handler (-> (partial commands/enterprise-cancel-appointment cmd-deps)
+                             (middleware/require-enterprise-role #{:MASTER :ADMIN :EMPLOYEE})
+                             middleware/require-authentication
+                             middleware/wrap-authentication)}}]
+
+       ["/manage/appointments/:id/reschedule"
+        {:put {:summary "Reschedule appointment (enterprise side)"
+               :handler (-> (partial commands/enterprise-reschedule-appointment cmd-deps)
+                            (middleware/require-enterprise-role #{:MASTER :ADMIN :EMPLOYEE})
+                            middleware/require-authentication
+                            middleware/wrap-authentication)}}]]]
 
      {:data {:coercion malli-coercion/coercion
              :muuntaja m/instance

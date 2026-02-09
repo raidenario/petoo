@@ -1,6 +1,12 @@
 (ns pet-app.api.commands.appointments
-  "Appointment command handlers."
+  "Appointment command handlers.
+   
+   Operations:
+   - create-appointment         (POST)
+   - enterprise-cancel-appointment (POST /:id/cancel, enterprise side)
+   - enterprise-reschedule      (PUT /:id/reschedule, enterprise side)"
   (:require [pet-app.api.commands.helpers :as h]
+            [pet-app.api.helpers :refer [ok bad-request not-found error forbidden]]
             [pet-app.domain.schemas :as schemas]
             [pet-app.infra.db :as db]
             [pet-app.infra.kafka :as kafka]
@@ -175,7 +181,153 @@
                     :message "Your wallet balance is insufficient for this service"}}
 
             (= (:service-id (ex-data e)) (:service-id body))
-            (h/response-bad-request {:service-id "Service not found"})
+            (bad-request {:service-id "Service not found"})
 
             :else
-            (h/response-error (.getMessage e))))))))
+            (error (.getMessage e))))))))
+
+;; ============================================
+;; Enterprise: Cancel Appointment
+;; ============================================
+
+(defn enterprise-cancel-appointment
+  "Cancel/reject an appointment from the enterprise side.
+   
+   Only MASTER/ADMIN/EMPLOYEE of the owning enterprise can cancel.
+   Body (optional):
+     {:reason 'Client no-show' or similar}"
+  [{:keys [ds kafka-producer topics]} request]
+  (let [appointment-id (get-in request [:path-params :id])
+        enterprise-id (get-in request [:user :enterprise-id])
+        body (:body-params request)
+        reason (or (:reason body) "Cancelled by enterprise")]
+    (cond
+      (nil? appointment-id)
+      (bad-request "Appointment ID is required")
+
+      (nil? enterprise-id)
+      (forbidden "Enterprise context required")
+
+      :else
+      (try
+        (let [appointment (db/execute-one! ds
+                                           {:select [:id :enterprise-id :status :client-id :pet-id :service-id]
+                                            :from [:core.appointments]
+                                            :where [:= :id [:cast appointment-id :uuid]]})]
+          (cond
+            (nil? appointment)
+            (not-found "Appointment not found")
+
+            (not= (str (:enterprise-id appointment)) (str enterprise-id))
+            (forbidden "This appointment does not belong to your enterprise")
+
+            (= (:status appointment) "CANCELLED")
+            (bad-request "Appointment is already cancelled")
+
+            (= (:status appointment) "COMPLETED")
+            (bad-request "Cannot cancel a completed appointment")
+
+            :else
+            (do
+              (db/update! ds :core.appointments
+                          {:status "CANCELLED"
+                           :notes reason}
+                          [:= :id [:cast appointment-id :uuid]])
+
+              ;; Emit cancellation event
+              (when kafka-producer
+                (let [event (kafka/make-event
+                             :appointment.cancelled
+                             {:appointment-id appointment-id
+                              :enterprise-id (str enterprise-id)
+                              :reason reason
+                              :cancelled-by "enterprise"})]
+                  (kafka/send-event! kafka-producer
+                                     (or (:appointment-cancelled topics) "appointment.cancelled")
+                                     appointment-id event)))
+
+              (ok {:id appointment-id
+                   :status "CANCELLED"
+                   :reason reason
+                   :message "Appointment cancelled successfully"}))))
+        (catch Exception e
+          (log/error e "Failed to cancel appointment" appointment-id)
+          (error (.getMessage e)))))))
+
+;; ============================================
+;; Enterprise: Reschedule Appointment
+;; ============================================
+
+(defn enterprise-reschedule-appointment
+  "Reschedule an appointment from the enterprise side.
+   
+   Body:
+     {:start-time '2026-02-15T10:00:00Z'
+      :end-time   '2026-02-15T11:00:00Z' ;; optional}"
+  [{:keys [ds kafka-producer topics]} request]
+  (let [appointment-id (get-in request [:path-params :id])
+        enterprise-id (get-in request [:user :enterprise-id])
+        body (:body-params request)
+        new-start (:start-time body)]
+    (cond
+      (nil? appointment-id)
+      (bad-request "Appointment ID is required")
+
+      (nil? enterprise-id)
+      (forbidden "Enterprise context required")
+
+      (nil? new-start)
+      (bad-request "start-time is required for rescheduling")
+
+      :else
+      (try
+        (let [appointment (db/execute-one! ds
+                                           {:select [:id :enterprise-id :status :service-id]
+                                            :from [:core.appointments]
+                                            :where [:= :id [:cast appointment-id :uuid]]})]
+          (cond
+            (nil? appointment)
+            (not-found "Appointment not found")
+
+            (not= (str (:enterprise-id appointment)) (str enterprise-id))
+            (forbidden "This appointment does not belong to your enterprise")
+
+            (= (:status appointment) "CANCELLED")
+            (bad-request "Cannot reschedule a cancelled appointment")
+
+            (= (:status appointment) "COMPLETED")
+            (bad-request "Cannot reschedule a completed appointment")
+
+            :else
+            (let [service (get-service-duration ds (str (:service-id appointment)))
+                  new-end (or (:end-time body)
+                              (when (and service (:duration-minutes service))
+                                (h/calculate-end-time new-start (:duration-minutes service))))
+                  update-data (cond-> {:start-time [:cast new-start :timestamptz]
+                                       :status "PENDING"}
+                                new-end (assoc :end-time [:cast new-end :timestamptz]))]
+              (db/update! ds :core.appointments
+                          update-data
+                          [:= :id [:cast appointment-id :uuid]])
+
+              ;; Emit reschedule event
+              (when kafka-producer
+                (let [event (kafka/make-event
+                             :appointment.rescheduled
+                             {:appointment-id appointment-id
+                              :enterprise-id (str enterprise-id)
+                              :new-start-time new-start
+                              :new-end-time new-end
+                              :rescheduled-by "enterprise"})]
+                  (kafka/send-event! kafka-producer
+                                     (or (:appointment-rescheduled topics) "appointment.rescheduled")
+                                     appointment-id event)))
+
+              (ok {:id appointment-id
+                   :status "PENDING"
+                   :start-time new-start
+                   :end-time new-end
+                   :message "Appointment rescheduled successfully"}))))
+        (catch Exception e
+          (log/error e "Failed to reschedule appointment" appointment-id)
+          (error (.getMessage e)))))))

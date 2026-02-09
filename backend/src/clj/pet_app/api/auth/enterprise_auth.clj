@@ -7,27 +7,10 @@
    - GET  /api/v1/auth/enterprise/me       - Get current user info"
   (:require [pet-app.infra.auth :as auth]
             [pet-app.infra.db :as db]
+            [pet-app.api.helpers :refer [ok created bad-request unauthorized error]]
+            [clojure.string :as str]
             [clojure.tools.logging :as log])
   (:import [java.util UUID]))
-
-;; ============================================
-;; Response Helpers
-;; ============================================
-
-(defn- response-ok [data]
-  {:status 200 :body data})
-
-(defn- response-created [data]
-  {:status 201 :body data})
-
-(defn- response-bad-request [error]
-  {:status 400 :body {:error "Bad Request" :message error}})
-
-(defn- response-unauthorized [error]
-  {:status 401 :body {:error "Unauthorized" :message error}})
-
-(defn- response-error [error]
-  {:status 500 :body {:error "Internal Server Error" :message error}})
 
 ;; ============================================
 ;; Validation Helpers
@@ -69,13 +52,13 @@
   (let [{:keys [email password]} (:body-params request)]
     (cond
       (nil? email)
-      (response-bad-request "Email is required")
+      (bad-request "Email is required")
 
       (nil? password)
-      (response-bad-request "Password is required")
+      (bad-request "Password is required")
 
       (not (valid-email? email))
-      (response-bad-request "Invalid email format")
+      (bad-request "Invalid email format")
 
       :else
       (try
@@ -90,11 +73,11 @@
           (cond
             ;; Usuário não encontrado
             (nil? user)
-            (response-unauthorized "Invalid email or password")
+            (unauthorized "Invalid email or password")
 
             ;; Senha incorreta
             (not (auth/verify-password password (:password-hash user)))
-            (response-unauthorized "Invalid email or password")
+            (unauthorized "Invalid email or password")
 
             ;; Sucesso!
             :else
@@ -105,7 +88,7 @@
                              (:role user))]
               (log/info "Enterprise user logged in:" email "role:" (:role user))
 
-              (response-ok
+              (ok
                {:token jwt-token
                 :user {:id (str (:id user))
                        :email (:email user)
@@ -116,7 +99,7 @@
 
         (catch Exception e
           (log/error e "Login failed for email:" email)
-          (response-error "Authentication failed"))))))
+          (error "Authentication failed"))))))
 
 ;; ============================================
 ;; POST /api/v1/auth/enterprise/register
@@ -143,23 +126,23 @@
     (cond
       ;; Validar enterprise
       (nil? (:name enterprise))
-      (response-bad-request "Enterprise name is required")
+      (bad-request "Enterprise name is required")
 
       (nil? (:slug enterprise))
-      (response-bad-request "Enterprise slug is required")
+      (bad-request "Enterprise slug is required")
 
       (not (valid-slug? (:slug enterprise)))
-      (response-bad-request "Invalid slug format (use lowercase letters, numbers, and hyphens)")
+      (bad-request "Invalid slug format (use lowercase letters, numbers, and hyphens)")
 
       ;; Validar user
       (nil? (:email user))
-      (response-bad-request "User email is required")
+      (bad-request "User email is required")
 
       (not (valid-email? (:email user)))
-      (response-bad-request "Invalid email format")
+      (bad-request "Invalid email format")
 
       (nil? (:name user))
-      (response-bad-request "User name is required")
+      (bad-request "User name is required")
 
       :else
       (try
@@ -169,13 +152,13 @@
                                                     :from :core.enterprises
                                                     :where [:= :slug (:slug enterprise)]})]
           (if existing-enterprise
-            (response-bad-request "Enterprise slug already exists")
+            (bad-request "Enterprise slug already exists")
 
             ;; Criar enterprise e usuário em transação
             (let [enterprise-id (str (UUID/randomUUID))
                   user-id (str (UUID/randomUUID))
                   password (:password user)
-                  password-hash (when-not (clojure.string/blank? password)
+                  password-hash (when-not (str/blank? password)
                                   (auth/hash-password password))
 
                   ;; Build enterprise record with only existing columns
@@ -230,7 +213,7 @@
               (log/info "New enterprise registered:" (:slug enterprise)
                         "master:" (:email user))
 
-              (response-created
+              (created
                {:token jwt-token
                 :enterprise {:id enterprise-id
                              :name (:name enterprise)
@@ -244,8 +227,8 @@
         (catch Exception e
           (log/error e "Failed to register enterprise")
           (if (re-find #"duplicate key" (str (.getMessage e)))
-            (response-bad-request "Email already registered")
-            (response-error "Registration failed")))))))
+            (bad-request "Email already registered")
+            (error "Registration failed")))))))
 
 ;; ============================================
 ;; GET /api/v1/auth/enterprise/me
@@ -257,7 +240,7 @@
   (let [user-id (get-in request [:user :user-id])
         enterprise-id (get-in request [:user :enterprise-id])]
     (if-not user-id
-      (response-unauthorized "Enterprise authentication required")
+      (unauthorized "Enterprise authentication required")
 
       (try
         (let [user (db/execute-one! ds
@@ -278,7 +261,7 @@
                                                [:= :owner-id [:cast user-id :uuid]]
                                                [:= :owner-type "USER"]]})]
           (if user
-            (response-ok {:user (-> user
+            (ok {:user (-> user
                                     (update :id str)
                                     (update :enterprise-id str))
                           :wallet (when wallet
@@ -286,11 +269,11 @@
                                      :balance_cents (:balance-cents wallet)
                                      :pending_cents (:pending-cents wallet)
                                      :updated_at (:updated-at wallet)})})
-            (response-unauthorized "User not found")))
+            (unauthorized "User not found")))
 
         (catch Exception e
           (log/error e "Failed to get enterprise user:" user-id)
-          (response-error "Failed to get user info"))))))
+          (error "Failed to get user info"))))))
 
 ;; ============================================
 ;; POST /api/v1/auth/enterprise/users
@@ -315,30 +298,30 @@
         requested-role (or role "EMPLOYEE")]
     (cond
       (nil? enterprise-id)
-      (response-unauthorized "Enterprise context required")
+      (unauthorized "Enterprise context required")
 
       (nil? email)
-      (response-bad-request "Email is required")
+      (bad-request "Email is required")
 
       (not (valid-email? email))
-      (response-bad-request "Invalid email format")
+      (bad-request "Invalid email format")
 
       (nil? name)
-      (response-bad-request "Name is required")
+      (bad-request "Name is required")
 
       ;; Validar permissão para criar role
       (and (= requested-role "MASTER")
            (not= creator-role :MASTER))
-      (response-bad-request "Only MASTER can create MASTER users")
+      (bad-request "Only MASTER can create MASTER users")
 
       (and (= requested-role "ADMIN")
            (not= creator-role :MASTER))
-      (response-bad-request "Only MASTER can create ADMIN users")
+      (bad-request "Only MASTER can create ADMIN users")
 
       :else
       (try
         (let [user-id (str (UUID/randomUUID))
-              password-hash (when-not (clojure.string/blank? password)
+              password-hash (when-not (str/blank? password)
                               (auth/hash-password password))
               _ (db/execute-one! ds
                                  {:insert-into :core.users
@@ -359,10 +342,10 @@
                                          :where [:= :id [:cast user-id :uuid]]})]
           (log/info "Enterprise user created:" email "role:" requested-role
                     "by:" (get-in request [:user :email]))
-          (response-created {:user (update new-user :id str)}))
+          (created {:user (update new-user :id str)}))
 
         (catch Exception e
           (log/error e "Failed to create enterprise user")
           (if (re-find #"duplicate key" (str (.getMessage e)))
-            (response-bad-request "Email already exists in this enterprise")
-            (response-error "Failed to create user")))))))
+            (bad-request "Email already exists in this enterprise")
+            (error "Failed to create user")))))))
